@@ -27,7 +27,6 @@
 
 ---
 
-<<<<<<< HEAD
 ## 🎯 The Problem
 
 Content creators and digital marketers often struggle to understand *why* a video goes viral, relying on guesswork rather than data-driven insights. Traditional analytics tools provide basic surface-level metrics (views, likes, comments) but fail to dissect the core psychological triggers, audio pacing, and visual momentum that actually retain audience attention and trigger the YouTube algorithm.
@@ -38,28 +37,26 @@ Content creators and digital marketers often struggle to understand *why* a vide
 
 ---
 
-## ✨ Latest Release — v6.0.1 SMART PICK & i18n UPDATE
+## ✨ Latest Release — v6.1.0 RIVAL DNA HIJACKER & SCRIPT DOCTOR
 
 > [!IMPORTANT]
-> **v6.0.1 - Smart Pick & i18n Update (UX Overhaul) 🔮**
+> **v6.1.0 - Rival DNA Hijacker & Script Doctor Update 🕵️✍️**
 >
-> **A. Internationalization & UI Overhaul:**
-> * **Full i18n Support:** Added comprehensive Multi-Language support (EN/TR) to the Chrome Extension with dynamic toggling and localized tooltips.
-> * **Button Guide Localization:** The entire "Information Modal" (Button Guide) has been separated from static HTML and properly mapped to the i18n engine.
-> * **Icon & Branding Update:** Refreshed desktop shortcut and UI icons for a seamless neon aesthetic. Overrode aggressive Windows icon caches.
-> * **Syntax & Bug Squashing:** Completely resolved the string interpolation and quote escaping issues (`tier_mega_viral` syntax error) that froze the extension UI.
+> **A. Rival DNA Hijacker (NEW):**
+> * **`POST /api/extension/guerilla_strategy`:** Analyzes rival channel DNA scores to generate a user-specific "Guerilla Strategy" report. Contains the competitor's strongest weapon, weakness, and a 3-step action plan.
+> * **`GuerillaStrategyRequest` Model:** Contains `rival_video_id`, `rival_channel`, `dna_data`, `target_channel_id` (multi-channel support), and `lang` (i18n) fields.
+> * **Dynamic Profiling:** User's `content_type` and `purpose` are dynamically fetched from the database and injected into the Groq prompt.
 >
-> **B. Smart Suggestion Engine (Prophet's Pick Evolved):**
-> * **Smart Pick Popup:** "Prophet's Pick" has been upgraded to a non-intrusive "Smart Pick" toast/popup with dynamically translated CTA buttons (Clone, Debate, DNA).
-> * **Clickable Cards:** Made the entire Smart Pick card area clickable, opening the YouTube video in a new background tab without interfering with the action buttons.
+> **B. Script Doctor (NEW):**
+> * **`POST /api/extension/generate_hook_script`:** References competitor/reference video DNA data and transcript to generate a viral hook + 3 different script drafts (Aggressive/Curiosity/Shock) tailored to the user's channel.
+> * **`HookScriptRequest` Model:** Contains `video_id`, `video_url`, `dna_data`, `target_channel_id`, and `lang` fields.
+> * **Transcript Fallback:** Performs estimated analysis from title and DNA scores if subtitles are missing—never returns empty.
 >
-> **C. Next-Gen DNA Scoring Engine (From v5.5.0):**
-> * **Weighted Success Formula:** DNA scoring respects the true science of virality: Hook (40%) and Tempo (40%) as core drivers, CTA (10%) and Emotion (10%) as support.
-> * **Synergy Bonus:** If a video scores >75 in both Hook and Tempo, the system grants a +20 Synergy Bonus.
-> * **Diminishing Returns (DR) Protection:** CTA and Emotion automatically receive a minimum of 50 credits to prevent unfair drag down on phenomenal hooks.
-> * **Dynamic Badges:** 4 new UI tiers for DNA scores: 👑 LEGENDARY, 🔥 VIRAL POTENTIAL, ✅ STRONG, ⚠️ NEEDS IMPROVEMENT.
-> * **Metadata Fallback:** Robust fallback mechanism to analyze Video Title, Tags, and Description if the transcript is missing, dynamically flagging the UI with an "Estimated Analysis".
-> * **Master Prompt Export:** Instantly generate a copy-pasteable "Master Prompt" matching the structural DNA of the analyzed viral video.
+> **C. Technical Fixes & Architecture:**
+> * **Dynamic Architecture:** Removed hardcoded channel name references in `clone_video`, `clone_debate`, and all related Groq prompts. Everything is dynamically fetched from the database's `content_type` and `purpose` fields.
+> * **Multi-Channel Support:** Added `target_channel_id` to `CloneVideoRequest` model. All extension endpoints (`clone_video`, `clone_debate`, `guerilla_strategy`, `generate_hook_script`) now correctly target the user's selected channel.
+> * **`is_favorite` Migration:** Added SQLite migration to `init_db` in `app/database/db.py` to add `is_favorite INTEGER DEFAULT 0` column to the `analyses` table.
+> * **Anti-Hallucination Shield:** Dynamically resolved system prompt for chat endpoint (`/api/chat`) based on user's dynamic `content_type`.
 ---
 
 ## 🌟 Ecosystem Architecture

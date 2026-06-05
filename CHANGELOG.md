@@ -2,23 +2,43 @@
 
 All notable changes to **YouTube Analyse Pro SaaS Edition** will be documented in this file.
 
-## [v6.0.0] - Rival DNA Hijacker & Script Doctor
+## [v6.1.0] - Rival DNA Hijacker & Script Doctor
 
 ### 🕵️ Rival DNA Hijacker (NEW)
-- **`POST /api/extension/guerilla_strategy`:** Rakip kanalın DNA puanlarını analiz ederek kullanıcıya özgü "Guerilla Strateji" raporu üretir. Rakibin en güçlü silahı, zayıf noktası ve 3 adımlı aksiyon planı içerir.
-- **`GuerillaStrategyRequest` Modeli:** `rival_video_id`, `rival_channel`, `dna_data`, `target_channel_id` (çoklu kanal desteği) ve `lang` (i18n) alanları içerir.
-- **Dinamik Profil:** Kullanıcının `content_type` ve `purpose` verileri DB'den çekilerek Groq prompt'una enjekte edilir.
+- **`POST /api/extension/guerilla_strategy`:** Analyzes rival channel DNA scores to generate a user-specific "Guerilla Strategy" report. Contains the competitor's strongest weapon, weakness, and a 3-step action plan.
+- **`GuerillaStrategyRequest` Model:** Contains `rival_video_id`, `rival_channel`, `dna_data`, `target_channel_id` (multi-channel support), and `lang` (i18n) fields.
+- **Dynamic Profiling:** User's `content_type` and `purpose` are dynamically fetched from the database and injected into the Groq prompt.
 
 ### ✍️ Script Doctor (NEW)
-- **`POST /api/extension/generate_hook_script`:** Rakip/referans videonun DNA verilerini ve transcript'ini referans alarak kullanıcının kanalına özel viral kanca + 3 farklı senaryo taslağı (Agresif/Merak/Şok) üretir.
-- **`HookScriptRequest` Modeli:** `video_id`, `video_url`, `dna_data`, `target_channel_id` ve `lang` alanları içerir.
-- **Transcript Fallback:** Altyazı yoksa başlık ve DNA skorlarından tahmini analiz yapılır — hiçbir zaman boş dönmez.
+- **`POST /api/extension/generate_hook_script`:** References competitor/reference video DNA data and transcript to generate a viral hook + 3 different script drafts (Aggressive/Curiosity/Shock) tailored to the user's channel.
+- **`HookScriptRequest` Model:** Contains `video_id`, `video_url`, `dna_data`, `target_channel_id`, and `lang` fields.
+- **Transcript Fallback:** Performs estimated analysis from title and DNA scores if subtitles are missing—never returns empty.
 
-### 🔧 Teknik Düzeltmeler
-- **Dinamik Yapı:** `clone_video`, `clone_debate` ve tüm ilgili Groq prompt'larındaki sabit kanal adı referansları kaldırıldı. Her şey DB'deki `content_type` ve `purpose` alanlarından besleniyor.
-- **Çoklu Kanal Desteği:** `CloneVideoRequest` modeline `target_channel_id` eklendi. Tüm extension endpoint'leri (`clone_video`, `clone_debate`, `guerilla_strategy`, `generate_hook_script`) artık kullanıcının seçtiği kanalı doğru şekilde hedefliyor.
-- **`is_favorite` Migration:** `analyses` tablosuna `is_favorite INTEGER DEFAULT 0` sütunu için migration `init_db` içine eklendi.
-- **Anti-Hallücination:** Chat endpoint'inin sistem prompt'u tamamen dinamik hale getirildi — kanal tipi artık `content_type` değişkeninden geliyor.
+### 🔧 Technical Fixes & Architecture
+- **Dynamic Architecture:** Removed hardcoded channel name references in `clone_video`, `clone_debate`, and all related Groq prompts. Everything is dynamically fetched from the database's `content_type` and `purpose` fields.
+- **Multi-Channel Support:** Added `target_channel_id` to `CloneVideoRequest` model. All extension endpoints (`clone_video`, `clone_debate`, `guerilla_strategy`, `generate_hook_script`) now correctly target the user's selected channel.
+- **`is_favorite` Migration:** Added SQLite migration to `init_db` in `app/database/db.py` to add `is_favorite INTEGER DEFAULT 0` column to the `analyses` table.
+- **Anti-Hallucination Shield:** Dynamically resolved system prompt for chat endpoint (`/api/chat`) based on user's dynamic `content_type`.
+
+## [v6.0.1] - Smart Pick & i18n Update (UX Overhaul)
+
+### 🌐 Internationalization & UI Overhaul
+- **Full i18n Support:** Added comprehensive Multi-Language support (EN/TR) to the Chrome Extension with dynamic toggling and localized tooltips.
+- **Button Guide Localization:** The entire "Information Modal" (Button Guide) has been separated from static HTML and properly mapped to the i18n engine.
+- **Icon & Branding Update:** Refreshed desktop shortcut and UI icons for a seamless neon aesthetic. Overrode aggressive Windows icon caches.
+- **Syntax & Bug Squashing:** Completely resolved the string interpolation and quote escaping issues (`tier_mega_viral` syntax error) that froze the extension UI.
+
+### 🔮 Smart Suggestion Engine (Prophet's Pick Evolved)
+- **Smart Pick Popup:** "Prophet's Pick" has been upgraded to a non-intrusive "Smart Pick" toast/popup with dynamically translated CTA buttons (Clone, Debate, DNA).
+- **Clickable Cards:** Made the entire Smart Pick card area clickable, opening the YouTube video in a new background tab without interfering with the action buttons.
+
+### 🧬 Next-Gen DNA Scoring Engine
+- **Weighted Success Formula:** DNA scoring respects the true science of virality: Hook (40%) and Tempo (40%) as core drivers, CTA (10%) and Emotion (10%) as support.
+- **Synergy Bonus:** If a video scores >75 in both Hook and Tempo, the system grants a +20 Synergy Bonus.
+- **Diminishing Returns (DR) Protection:** CTA and Emotion automatically receive a minimum of 50 credits to prevent unfair drag down on phenomenal hooks.
+- **Dynamic Badges:** 4 new UI tiers for DNA scores: 👑 LEGENDARY, 🔥 VIRAL POTENTIAL, ✅ STRONG, ⚠️ NEEDS IMPROVEMENT.
+- **Metadata Fallback:** Robust fallback mechanism to analyze Video Title, Tags, and Description if the transcript is missing, dynamically flagging the UI with an "Estimated Analysis".
+- **Master Prompt Export:** Instantly generate a copy-pasteable "Master Prompt" matching the structural DNA of the analyzed viral video.
 
 ## [v2.0.0] - Enterprise Architecture & 1-Click Install
 
