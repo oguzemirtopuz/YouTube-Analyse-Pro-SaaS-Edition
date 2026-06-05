@@ -155,6 +155,7 @@ def init_db():
                 "ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'local'",
                 "ALTER TABLE chat_sessions ADD COLUMN user_id INTEGER DEFAULT 1",
                 "ALTER TABLE channels ADD COLUMN channel_rules TEXT",
+                "ALTER TABLE analyses ADD COLUMN is_favorite INTEGER DEFAULT 0",
             ]
             for sql in migrations:
                 try:

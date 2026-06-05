@@ -2,16 +2,23 @@
 
 All notable changes to **YouTube Analyse Pro SaaS Edition** will be documented in this file.
 
-## [v6.0.0] - Smart Pick & UI Update (i18n & UX Overhaul)
+## [v6.0.0] - Rival DNA Hijacker & Script Doctor
 
-### ✨ Internationalization & UI Overhaul
-- **Full i18n Support:** Added comprehensive Multi-Language support (EN/TR) to the Chrome Extension with dynamic toggling and localized tooltips.
-- **Icon & Branding Update:** Refreshed desktop shortcut and UI icons for a seamless neon aesthetic. Overrode aggressive Windows icon caches.
-- **Syntax & Bug Squashing:** Completely resolved the string interpolation and quote escaping issues (`tier_mega_viral` syntax error) that froze the extension UI.
+### 🕵️ Rival DNA Hijacker (NEW)
+- **`POST /api/extension/guerilla_strategy`:** Rakip kanalın DNA puanlarını analiz ederek kullanıcıya özgü "Guerilla Strateji" raporu üretir. Rakibin en güçlü silahı, zayıf noktası ve 3 adımlı aksiyon planı içerir.
+- **`GuerillaStrategyRequest` Modeli:** `rival_video_id`, `rival_channel`, `dna_data`, `target_channel_id` (çoklu kanal desteği) ve `lang` (i18n) alanları içerir.
+- **Dinamik Profil:** Kullanıcının `content_type` ve `purpose` verileri DB'den çekilerek Groq prompt'una enjekte edilir.
 
-### 🔮 Smart Suggestion Engine (Prophet's Pick Evolved)
-- **Smart Pick Popup:** "Prophet's Pick" has been upgraded to a non-intrusive "Smart Pick" toast/popup with dynamically translated CTA buttons (Clone, Debate, DNA).
-- **Clickable Cards:** Made the entire Smart Pick card area clickable, opening the YouTube video in a new background tab without interfering with the action buttons.
+### ✍️ Script Doctor (NEW)
+- **`POST /api/extension/generate_hook_script`:** Rakip/referans videonun DNA verilerini ve transcript'ini referans alarak kullanıcının kanalına özel viral kanca + 3 farklı senaryo taslağı (Agresif/Merak/Şok) üretir.
+- **`HookScriptRequest` Modeli:** `video_id`, `video_url`, `dna_data`, `target_channel_id` ve `lang` alanları içerir.
+- **Transcript Fallback:** Altyazı yoksa başlık ve DNA skorlarından tahmini analiz yapılır — hiçbir zaman boş dönmez.
+
+### 🔧 Teknik Düzeltmeler
+- **Dinamik Yapı:** `clone_video`, `clone_debate` ve tüm ilgili Groq prompt'larındaki sabit kanal adı referansları kaldırıldı. Her şey DB'deki `content_type` ve `purpose` alanlarından besleniyor.
+- **Çoklu Kanal Desteği:** `CloneVideoRequest` modeline `target_channel_id` eklendi. Tüm extension endpoint'leri (`clone_video`, `clone_debate`, `guerilla_strategy`, `generate_hook_script`) artık kullanıcının seçtiği kanalı doğru şekilde hedefliyor.
+- **`is_favorite` Migration:** `analyses` tablosuna `is_favorite INTEGER DEFAULT 0` sütunu için migration `init_db` içine eklendi.
+- **Anti-Hallücination:** Chat endpoint'inin sistem prompt'u tamamen dinamik hale getirildi — kanal tipi artık `content_type` değişkeninden geliyor.
 
 ## [v2.0.0] - Enterprise Architecture & 1-Click Install
 

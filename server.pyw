@@ -2707,12 +2707,12 @@ Detect the exact language of the user's message and respond EXCLUSIVELY in that 
 
 10. THUMBNAIL ANALİZ VE HALÜSİNASYON YASAĞI:
     - Mevcut thumbnail'de bir yüz olduğunu VARSAYMAK KESİNLİKLE YASAKTIR.
-    - Eğer thumbnail'de gerçekten bir insan yüzü olduğunu kanıtlayan somut bir veri yoksa (veya kanal BabaClutch ise), 'mutlu yüz', 'kameraya bakıyor', 'şaşırmış surat' gibi jenerik ve sahte ifadeleri ASLA kullanma.
-    - BabaClutch bir gaming kanalıdır. Bu kanalda 'şaşırmış insan yüzü' yerine her zaman: Yüksek kontrastlı oyun içi aksiyon sahneleri, parlayan epik karakterler veya araçlar, dramatik alev/patlama efektleri, büyük ve keskin tipografi önerilmelidir.
+    - Eğer thumbnail'de gerçekten bir insan yüzü olduğunu kanıtlayan somut bir veri yoksa, 'mutlu yüz', 'kameraya bakıyor', 'şaşırmış surat' gibi jenerik ve sahte ifadeleri ASLA kullanma.
+    - Kanal tipi ({ch_type}) bir gaming/aksiyon kanalıysa 'şaşırmış insan yüzü' yerine her zaman: Yüksek kontrastlı oyun içi aksiyon sahneleri, parlayan epik karakterler veya araçlar, dramatik alev/patlama efektleri, büyük ve keskin tipografi önerilmelidir.
     - Gördüğün ekran görüntüsünde (SS) yüz yoksa, 'yüz var' demek yerine dürüstçe görsel tempoyu ve kontrastı analiz et.
-    - IMPORTANT: DO NOT use the example phrase about 'happy face' and 'looking at camera'. It was a placeholder. Describe the actual visual energy of BabaClutch's gaming thumbnail instead.
+    - IMPORTANT: DO NOT describe generic thumbnail elements. Describe the actual visual energy that fits the channel's content type ({ch_type}).
 11. RAKİP ANALİZİ VE ÖNERİSİ:
-    - ASLA "BabaClutch" kanalını bir rakip olarak önerme. Kullanıcı zaten BabaClutch kanalıdır. Rakip analizleri her zaman harici kanallar üzerinden yapılmalıdır.
+    - Kullanıcının kendi kanalını rakip olarak ASLA önerme. Rakip analizleri her zaman harici kanallar üzerinden yapılmalıdır.
 
 {title_instruction}
 {no_analysis_instruction}
@@ -3048,7 +3048,7 @@ async def _call_groq_clone(
     prompt = f"""Sen üst düzey bir YouTube Algoritma Uzmanı ve Viral İçerik Stratejistisin. 
 
 KULLANICI PROFİLİ: 
-Bu analizi isteyen kullanıcının kanalı 'BabaClutch'. Konsepti: Oyun (Minecraft, Rocket League vb.), Kaos, Rage, Arkadaş Kavgası ve Yüksek Enerji.
+Kullanıcının kanal tipi: {content_type}. Kanalın amacı: {purpose}.
 
 GÖREVİN: 
 Sana verilen orijinal video başlığı ve altyazı (transcript) verilerini analiz ederek, bu videonun başarısını klonlayacak 3 yeni, özgün ve yüksek potansiyelli video fikri üretmek.
@@ -3062,7 +3062,7 @@ KURALLAR:
 1. VİRAL ANATOMİ: Videonun neden viral olduğunu (psikolojik tetikleyici ve kanca) analiz et.
 2. FİKİR ÜRETİMİ: Orijinal videonun ruhunu kopyalayan 3 farklı video fikri sun.
 {thumbnail_rule}
-3. NİŞ UYARISI: Analiz ettiğin video, kullanıcının "Oyun/Kaos" konseptiyle uyuşmuyorsa bir uyarı metni yaz. Uyuşuyorsa boş bırak.
+3. NİŞ UYARISI: Analiz ettiğin video, kullanıcının \"{content_type}\" konseptiyle uyuşmuyorsa bir uyarı metni yaz. Uyuşuyorsa boş bırak.
 4. KESİN FORMAT KURALI: Çıktın KESİNLİKLE bir dizi (array) [...] OLAMAZ. Çıktın KESİNLİKLE bir obje (object) {{...}} olmak zorundadır. Objenin içinde "viral_anatomi", "nis_uyarisi" ve "fikirler" anahtarları ZORUNLUDUR. SADECE AŞAĞIDAKİ JSON FORMATINDA ÇIKTI VER (Başka hiçbir düz metin yazma):
 {{
   "viral_anatomi": "Videonun neden patladığını anlatan 2-3 cümlelik psikolojik analiz.",
@@ -3419,6 +3419,7 @@ class CloneVideoRequest(BaseModel):
     penetration_ratio: Optional[float] = Field(default=None)
     comment_signals:   Optional[str]   = Field(default=None)
     user_id:   int = Field(default=0, description="User ID")
+    target_channel_id: Optional[int] = Field(default=None, description="Seçili kanalın ID'si (çoklu kanal senaryosu)")
     # -- i18n --
     lang:      str = Field(default="tr", description="UI language: 'tr' or 'en'")
 
@@ -3613,7 +3614,7 @@ async def extension_rabbit_hole(payload: RabbitHoleRequest):
 
 # ═══════════════════════════════════════════════════════════
 # PROPHET'S PICK — Automatic Viral Recommendation System
-# Fits the BabaClutch niche (Gaming/Chaos), currently exploding
+# Dynamically detects 3 "Outlier" videos that fit the user's niche.
 # Automatically detects 3 "Outlier" videos.
 # It uses the existing extract_rabbit_hole_sync module (KISS).
 # 3 queries run in PARALLEL with asyncio → max ~2sec loading.
@@ -3829,15 +3830,25 @@ async def extension_clone_video(payload: CloneVideoRequest):
     db = await get_async_db()
     content_type = "General Content"
     purpose = "Entertaining the Audience"
+    channel_name_db = ""
     if payload.user_id:
         try:
-            async with db.execute("SELECT content_type, purpose FROM channels WHERE user_id = ? LIMIT 1", (payload.user_id,)) as c:
+            # Çoklu kanal: target_channel_id varsa o kanalı kullan, yoksa LIMIT 1
+            if payload.target_channel_id:
+                _q = "SELECT content_type, purpose, name FROM channels WHERE id = ? AND user_id = ?"
+                _p = (payload.target_channel_id, payload.user_id)
+            else:
+                _q = "SELECT content_type, purpose, name FROM channels WHERE user_id = ? LIMIT 1"
+                _p = (payload.user_id,)
+            async with db.execute(_q, _p) as c:
                 channel_row = await c.fetchone()
                 if channel_row:
                     content_type = channel_row['content_type'] or content_type
                     purpose = channel_row['purpose'] or purpose
+                    channel_name_db = channel_row['name'] or ""
         finally:
             await db.close()
+
 
     try:
         result = await _call_groq_clone(
@@ -4035,7 +4046,7 @@ Kurallar:
     prompt_judge = f"""Sen acımasız ve vizyoner bir YouTube İçerik Hakemi ve Algoritma Uzmanısın.
 
 KULLANICI PROFİLİ: 
-Kullanıcının kanalı 'BabaClutch'. Konsepti: Oyun (Minecraft, Rocket League vb.), Kaos, Rage, Arkadaş Kavgası ve Yüksek Enerji.
+Kullanıcının kanal tipi: {content_type}. Kanalın amacı: {purpose}.
 
 GÖREVİN:
 Sana verilen orijinal video verilerini ve diğer yapay zekaların ürettiği fikirleri analiz edip, en viral olmaya yatkın sonucu sentezlemek.
@@ -4199,19 +4210,25 @@ async def extension_clone_debate(payload: CloneVideoRequest):
         )
 
     # ── Channel Profile ───────────────────────────── ─────────────────────────────
-    content_type = "General Content"
-    purpose      = "Entertaining the Audience"
+    content_type    = "General Content"
+    purpose         = "Entertaining the Audience"
+    channel_name_db = ""
     if payload.user_id:
         db = await get_async_db()
         try:
-            async with db.execute(
-                "SELECT content_type, purpose FROM channels WHERE user_id = ? LIMIT 1",
-                (payload.user_id,)
-            ) as c:
+            # Çoklu kanal: target_channel_id varsa o kanalı kullan, yoksa LIMIT 1
+            if payload.target_channel_id:
+                _q2 = "SELECT content_type, purpose, name FROM channels WHERE id = ? AND user_id = ?"
+                _p2 = (payload.target_channel_id, payload.user_id)
+            else:
+                _q2 = "SELECT content_type, purpose, name FROM channels WHERE user_id = ? LIMIT 1"
+                _p2 = (payload.user_id,)
+            async with db.execute(_q2, _p2) as c:
                 row = await c.fetchone()
                 if row:
-                    content_type = row["content_type"] or content_type
-                    purpose      = row["purpose"]      or purpose
+                    content_type    = row["content_type"] or content_type
+                    purpose         = row["purpose"]      or purpose
+                    channel_name_db = row["name"]         or ""
         finally:
             await db.close()
 
@@ -4942,7 +4959,405 @@ Bu kanalın "Başarı Formülü"nü 3-4 cümleyle özetle. Hangi DNS skoru en g�
     }
 
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  🕵️  RIVAL DNA HIJACKER  —  v6.0.0
+#
+#  Rakip kanalın DNA puanlarını alır ve kullanıcının kanalına özgü
+#  "Guerilla Strateji" (gizli saldırı planı) üretir.
+#  Endpoit: POST /api/extension/guerilla_strategy
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class GuerillaStrategyRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    # Rakip videonun verileri (Chrome Extension'dan gelir)
+    rival_video_id:    str = Field(default="", description="Rakip YouTube video ID")
+    rival_title:       str = Field(default="", description="Rakip video başlığı")
+    rival_channel:     str = Field(default="", description="Rakip kanal adı")
+    rival_channel_url: str = Field(default="", description="Rakip kanal URL'si")
+    # Rakip DNA skorları (extension tarafından önceden hesaplanmış olabilir)
+    dna_data: Optional[dict] = Field(default=None, description="Rakip kanalın önceden hesaplanan DNA skorları")
+    # Kullanıcı bilgisi
+    user_id:          int  = Field(default=0)
+    target_channel_id: Optional[int] = Field(default=None, description="Seçili kanal ID (çoklu kanal senaryosu)")
+    lang:             str  = Field(default="tr", description="UI dili: 'tr' veya 'en'")
+
+
+@app.post("/api/extension/guerilla_strategy")
+async def extension_guerilla_strategy(payload: GuerillaStrategyRequest):
+    """
+    🕵️ Rival DNA Hijacker — v6.0.0
+
+    1. Rakip kanal/videonun DNA puanlarını al (dna_data payload'dan gelebilir
+       veya sıfırdan hesaplanır).
+    2. Kullanıcının kendi kanal profilini DB'den çek (content_type, purpose).
+    3. Groq ile "Guerilla Strateji" üret:
+       - Rakibin en güçlü DNA silahı ne?
+       - Kullanıcının hangi alanda rakibi geçebileceği?
+       - Rakibin zayıf noktasını hedef alan 3 spesifik aksiyon planı.
+    4. Sonucu JSON döndür.
+    """
+    app_logger.info(f"[guerilla_strategy] Başlatıldı: rival='{payload.rival_channel}' user_id={payload.user_id}")
+
+    # ── 1. Kullanıcı Kanal Profili ────────────────────────────────────────────
+    content_type    = "General Content"
+    purpose         = "Entertaining the Audience"
+    my_channel_name = ""
+    if payload.user_id:
+        db = await get_async_db()
+        try:
+            if payload.target_channel_id:
+                _gq = "SELECT content_type, purpose, name FROM channels WHERE id = ? AND user_id = ?"
+                _gp = (payload.target_channel_id, payload.user_id)
+            else:
+                _gq = "SELECT content_type, purpose, name FROM channels WHERE user_id = ? LIMIT 1"
+                _gp = (payload.user_id,)
+            async with db.execute(_gq, _gp) as c:
+                row = await c.fetchone()
+                if row:
+                    content_type    = row["content_type"] or content_type
+                    purpose         = row["purpose"]      or purpose
+                    my_channel_name = row["name"]         or ""
+        finally:
+            await db.close()
+
+    # ── 2. Rakip DNA Skorları ─────────────────────────────────────────────────
+    # dna_data payload'dan geldiyse kullan; yoksa temel değerler kabul et
+    rival_dna = payload.dna_data or {}
+    rival_hook      = rival_dna.get("hook",      50.0)
+    rival_retention = rival_dna.get("retention", 50.0)
+    rival_cta       = rival_dna.get("cta",       50.0)
+    rival_emotion   = rival_dna.get("emotion",   50.0)
+    rival_overall   = rival_dna.get("overall",   50.0)
+
+    # ── 3. Groq API ───────────────────────────────────────────────────────────
+    api_key = await get_groq_api_key()
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Groq API key is not set. Please add it from the application Settings panel."
+        )
+
+    _lang_rule = (
+        "\n\nIMPORTANT: Write the ENTIRE Guerilla Strategy report in ENGLISH only. Do not use Turkish."
+        if payload.lang == "en" else
+        "Tüm raporu Türkçe yaz."
+    )
+
+    prompt = f"""Sen efsanevi bir YouTube Büyüme Hack'çisi ve rakip istihbarat uzmanısın.
+
+━━━ KENDİ KANAL PROFİLİN ━━━
+Kanal Adı  : {my_channel_name or "Bilinmiyor"}
+İçerik Tipi: {content_type}
+Amaç       : {purpose}
+
+━━━ RAKİP KANAL DNA'SI ━━━
+Rakip Kanal : {payload.rival_channel or "Bilinmiyor"}
+Rakip Video : {payload.rival_title or "Belirtilmedi"}
+Hook Skoru  : {rival_hook}/100
+Retention   : {rival_retention}/100
+CTA Skoru   : {rival_cta}/100
+Emotion     : {rival_emotion}/100
+Genel DNA   : {rival_overall}/100
+
+━━━ GÖREVİN ━━━
+Bu rakibin DNA verilerini analiz ederek bana SADECE aşağıdaki JSON formatında bir "Guerilla Strateji" raporu üret.
+KURAL: Çıktı YALNIZCA geçerli JSON olmalıdır. Başka açıklama veya metin yazma.
+
+{{
+  "rival_silah": "Rakibin en güçlü DNA silahı ve neden izleyiciyi bağladığı (2 cümle)",
+  "benim_avantajim": "Rakibe kıyasla kendi kanalımın hangi alanda üstün olabileceği veya olabileceği fırsat (2 cümle)",
+  "zayif_nokta": "Rakibin DNA'sındaki en kritik zayıf nokta (düşük skor veya tutarsızlık)",
+  "aksiyon_plani": [
+    {{
+      "adim": 1,
+      "baslik": "Aksiyon başlığı",
+      "taktik": "Spesifik ve uygulanabilir taktik açıklaması",
+      "hedef_metrik": "Bu aksiyonun hangi DNA metriğini hedeflediği"
+    }},
+    {{
+      "adim": 2,
+      "baslik": "Aksiyon başlığı",
+      "taktik": "Spesifik ve uygulanabilir taktik açıklaması",
+      "hedef_metrik": "Bu aksiyonun hangi DNA metriğini hedeflediği"
+    }},
+    {{
+      "adim": 3,
+      "baslik": "Aksiyon başlığı",
+      "taktik": "Spesifik ve uygulanabilir taktik açıklaması",
+      "hedef_metrik": "Bu aksiyonun hangi DNA metriğini hedeflediği"
+    }}
+  ],
+  "guerilla_ozet": "3-4 cümlelik saldırı planı özeti. Hangi zayıflığı ne zaman nasıl istismar edeceksin?"
+}}{_lang_rule}"""
+
+    def _gpost():
+        import requests as _r
+        return _r.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an elite YouTube growth hacker. Produce ONLY valid JSON output, no additional text."
+                            if payload.lang == "en" else
+                            "Sen elit bir YouTube büyüme hack'çisisin. YALNIZCA geçerli JSON çıktısı üret, başka hiçbir metin yazma."
+                        )
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 900,
+                "temperature": 0.6,
+            },
+            timeout=30,
+        )
+
+    try:
+        resp = await run_in_threadpool(_gpost)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Groq API error: HTTP {resp.status_code}")
+
+        raw = resp.json()["choices"][0]["message"]["content"].strip()
+        # JSON bloğunu temizle
+        _clean = re.sub(r"```(?:json)?", "", raw).replace("```", "").strip()
+        _match = re.search(r"\{.*\}", _clean, re.DOTALL)
+        if not _match:
+            raise HTTPException(status_code=500, detail="AI response did not contain valid JSON.")
+        strategy = json.loads(_match.group(), strict=False)
+    except HTTPException:
+        raise
+    except json.JSONDecodeError as e:
+        app_logger.error(f"[guerilla_strategy] JSON parse hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"AI yanıtı JSON olarak ayrıştırılamadı: {e}")
+    except Exception as e:
+        app_logger.error(f"[guerilla_strategy] Beklenmeyen hata: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Guerilla strateji üretilemedi: {e}")
+
+    app_logger.info(f"[guerilla_strategy] ✅ Tamamlandı: rival='{payload.rival_channel}'")
+
+    return {
+        "success":       True,
+        "rival_channel": payload.rival_channel,
+        "rival_dna":     rival_dna,
+        "my_channel":    my_channel_name,
+        "content_type":  content_type,
+        "strategy":      strategy,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  ✍️  SCRIPT DOCTOR  —  v6.0.0
+#
+#  Rakip videonun DNA verilerini referans alarak kullanıcının kanalına
+#  özgü, viral kanca + senaryo taslağı üretir.
+#  Endpoint: POST /api/extension/generate_hook_script
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class HookScriptRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    # Hedef video (rakip ya da referans video)
+    video_id:    str  = Field(default="", description="Referans YouTube video ID")
+    video_url:   str  = Field(default="", description="Referans YouTube video URL")
+    title:       str  = Field(default="", description="Video başlığı")
+    channel:     str  = Field(default="", description="Kanal adı")
+    # Rakip DNA verileri (opsiyonel — varsa daha isabetli sonuç üretilir)
+    dna_data:    Optional[dict] = Field(default=None, description="Referans videonun DNA skorları")
+    # Kullanıcı bilgisi
+    user_id:          int  = Field(default=0)
+    target_channel_id: Optional[int] = Field(default=None, description="Seçili kanal ID (çoklu kanal senaryosu)")
+    lang:             str  = Field(default="tr", description="UI dili: 'tr' veya 'en'")
+
+
+@app.post("/api/extension/generate_hook_script")
+async def extension_generate_hook_script(payload: HookScriptRequest):
+    """
+    ✍️ Script Doctor — v6.0.0
+
+    Rakip/referans videonun DNA verilerini ve transcript'ini okuyarak
+    kullanıcının kendi kanalına uygun viral bir hook + senaryo taslağı üretir.
+
+    Adımlar:
+    1. Transcript çek (opsiyonel — yoksa metadata ile fallback)
+    2. Kullanıcı kanal profili DB'den alınır (content_type, purpose)
+    3. Groq ile kanca (ilk 30sn) + 3 farklı senaryo taslağı üretilir
+    4. Sonuç JSON döndürülür
+    """
+    app_logger.info(f"[generate_hook_script] Başlatıldı: video_id={payload.video_id} user_id={payload.user_id}")
+
+    # ── Video ID çıkar ────────────────────────────────────────────────────────
+    video_id = payload.video_id.strip()
+    if not video_id and "v=" in payload.video_url:
+        from urllib.parse import urlparse, parse_qs
+        video_id = parse_qs(urlparse(payload.video_url).query).get("v", [""])[0]
+
+    # ── 1. Transcript çek ─────────────────────────────────────────────────────
+    transcript = ""
+    if video_id:
+        try:
+            transcript = await run_in_threadpool(_fetch_transcript_sync, video_id)
+            if not transcript or transcript.startswith("HATA:") or transcript.startswith("ERROR:"):
+                transcript = ""
+        except Exception as e:
+            app_logger.warning(f"[generate_hook_script] Transcript hatası: {e}")
+            transcript = ""
+
+    # ── 2. Kullanıcı Kanal Profili ────────────────────────────────────────────
+    content_type    = "General Content"
+    purpose         = "Entertaining the Audience"
+    my_channel_name = ""
+    if payload.user_id:
+        db = await get_async_db()
+        try:
+            if payload.target_channel_id:
+                _hq = "SELECT content_type, purpose, name FROM channels WHERE id = ? AND user_id = ?"
+                _hp = (payload.target_channel_id, payload.user_id)
+            else:
+                _hq = "SELECT content_type, purpose, name FROM channels WHERE user_id = ? LIMIT 1"
+                _hp = (payload.user_id,)
+            async with db.execute(_hq, _hp) as c:
+                row = await c.fetchone()
+                if row:
+                    content_type    = row["content_type"] or content_type
+                    purpose         = row["purpose"]      or purpose
+                    my_channel_name = row["name"]         or ""
+        finally:
+            await db.close()
+
+    # ── 3. DNA Skoru ──────────────────────────────────────────────────────────
+    ref_dna      = payload.dna_data or {}
+    ref_hook     = ref_dna.get("hook",      0.0)
+    ref_retention= ref_dna.get("retention", 0.0)
+    ref_overall  = ref_dna.get("overall",   0.0)
+
+    # ── 4. Groq API ───────────────────────────────────────────────────────────
+    api_key = await get_groq_api_key()
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Groq API key is not set. Please add it from the application Settings panel."
+        )
+
+    _lang_rule_hs = (
+        "\n\nIMPORTANT: Write the ENTIRE hook script output in ENGLISH only. Do not use Turkish."
+        if payload.lang == "en" else
+        "Tüm çıktıyı Türkçe yaz."
+    )
+
+    transcript_preview = (transcript or "")[:2500]
+    has_transcript = bool(transcript_preview.strip())
+
+    prompt_hs = f"""Sen dünyanın en iyi YouTube senaryo doktoru ve viral kanca uzmanısın.
+
+━━━ KENDİ KANAL PROFİLİN ━━━
+Kanal Adı  : {my_channel_name or "Bilinmiyor"}
+İçerik Tipi: {content_type}
+Amaç       : {purpose}
+
+━━━ REFERANS VİDEO ━━━
+Video Başlık : {payload.title or "Belirtilmedi"}
+Kanal        : {payload.channel or "Belirtilmedi"}
+Hook Skoru   : {ref_hook}/100  {"(Yüksek kanca — bu formülü analiz et!)" if ref_hook >= 70 else "(Düşük kanca — bu hatadan öğren!)"}
+Retention    : {ref_retention}/100
+DNA Genel    : {ref_overall}/100
+
+━━━ {"REFERANS VİDEO ALTYAZISI (İlk 2500 karakter)" if has_transcript else "ALTYAZI YOK — SADECE BAŞLIK VE DNA VERİSİ KULLANILACAK"} ━━━
+{transcript_preview if has_transcript else "Altyazı bulunamadı. Başlık ve DNA skorlarından tahmini analiz yap."}
+
+━━━ GÖREVİN ━━━
+Bu referans videoyu inceleyerek benim kanalım ({content_type} / {purpose}) için VİRAL bir hook ve senaryo taslağı üret.
+KURAL: Çıktı YALNIZCA aşağıdaki JSON formatında olmalıdır. Başka hiçbir metin yazma.
+
+{{
+  "kanca_analizi": "Referans videonun kanca stratejisi ve neden etkili/etkisiz olduğu (2 cümle)",
+  "benim_kancam": {{
+    "ilk_cumle": "İzleyiciyi ilk 3 saniyede yakalayacak açılış cümlesi (kanalıma özel)",
+    "psikolojik_tetikleyici": "Hangi psikolojik mekanizmayı tetikliyor? (Merak/Şok/Vaat/Korku)",
+    "gorsel_eylem": "Ekran üzerinde ne görünmeli / nasıl bir sahne kurulmalı?"
+  }},
+  "senaryo_taslaklari": [
+    {{
+      "versiyon": "A — Agresif Hook",
+      "baslik_onerisi": "Bu konsept için önerilen başlık",
+      "senaryo": "İlk 60 saniyenin senaryo taslağı (madde madde, konuşma diliyle)"
+    }},
+    {{
+      "versiyon": "B — Merak Hook",
+      "baslik_onerisi": "Bu konsept için önerilen başlık",
+      "senaryo": "İlk 60 saniyenin senaryo taslağı (madde madde, konuşma diliyle)"
+    }},
+    {{
+      "versiyon": "C — Şok Hook",
+      "baslik_onerisi": "Bu konsept için önerilen başlık",
+      "senaryo": "İlk 60 saniyenin senaryo taslağı (madde madde, konuşma diliyle)"
+    }}
+  ],
+  "tempo_tavsiyesi": "Videonun ritim/tempo önerisi: kesim sıklığı, cümle uzunluğu (2-3 cümle)"
+}}{_lang_rule_hs}"""
+
+    def _hspost():
+        import requests as _r
+        return _r.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are the world's best YouTube Script Doctor. Produce ONLY valid JSON output."
+                            if payload.lang == "en" else
+                            "Sen dünyanın en iyi YouTube Senaryo Doktoru'sun. YALNIZCA geçerli JSON çıktısı üret."
+                        )
+                    },
+                    {"role": "user", "content": prompt_hs}
+                ],
+                "max_tokens": 1400,
+                "temperature": 0.65,
+            },
+            timeout=35,
+        )
+
+    try:
+        resp_hs = await run_in_threadpool(_hspost)
+        if resp_hs.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Groq API error: HTTP {resp_hs.status_code}")
+
+        raw_hs = resp_hs.json()["choices"][0]["message"]["content"].strip()
+        _clean_hs = re.sub(r"```(?:json)?", "", raw_hs).replace("```", "").strip()
+        _match_hs = re.search(r"\{.*\}", _clean_hs, re.DOTALL)
+        if not _match_hs:
+            raise HTTPException(status_code=500, detail="AI response did not contain valid JSON.")
+        hook_script = json.loads(_match_hs.group(), strict=False)
+    except HTTPException:
+        raise
+    except json.JSONDecodeError as e:
+        app_logger.error(f"[generate_hook_script] JSON parse hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"AI yanıtı JSON olarak ayrıştırılamadı: {e}")
+    except Exception as e:
+        app_logger.error(f"[generate_hook_script] Beklenmeyen hata: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Hook script üretilemedi: {e}")
+
+    app_logger.info(f"[generate_hook_script] ✅ Tamamlandı: video_id={video_id} has_transcript={has_transcript}")
+
+    return {
+        "success":          True,
+        "video_id":         video_id,
+        "reference_title":  payload.title,
+        "my_channel":       my_channel_name,
+        "content_type":     content_type,
+        "has_transcript":   has_transcript,
+        "transcript_length": len(transcript),
+        "ref_dna":          ref_dna,
+        "hook_script":      hook_script,
+    }
+
+
 @app.get("/health")
+
 async def health():
 
     return {
