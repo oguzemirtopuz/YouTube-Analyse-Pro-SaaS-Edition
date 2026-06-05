@@ -434,10 +434,10 @@ async function debateVideo(eventOrData = null) {
       }
   }
 
-  const { user_id } = await chrome.storage.local.get(['user_id']);
+  const { user_id, target_channel_id } = await chrome.storage.local.get(['user_id', 'target_channel_id']);
 
   // Request enriched with Predictive Intelligence fields
-  const requestBody = enrichVideoData(videoData, user_id);
+  const requestBody = enrichVideoData(videoData, user_id, target_channel_id || null);
 
   // 5. POST /api/extension/clone_debate
   try {
@@ -619,10 +619,10 @@ async function cloneVideo(eventOrData = null) {
 
   elLoadingSub.textContent = t('loading_sub_ai');
 
-  const { user_id } = await chrome.storage.local.get(['user_id']);
+  const { user_id, target_channel_id } = await chrome.storage.local.get(['user_id', 'target_channel_id']);
 
   // 6. POST to Backend — enriched with Predictive Intelligence fields
-  const requestBody = enrichVideoData(videoData, user_id);
+  const requestBody = enrichVideoData(videoData, user_id, target_channel_id || null);
 
   try {
     const resp = await fetch(`${SERVER}/api/extension/clone_video`, {
@@ -859,7 +859,7 @@ function extractYouTubeData() {
  *   tier              — dead / potential / rising / viral / mega_viral
  *   penetration_ratio — ${t('views')} / abone (abone yoksa null)
  */
-function enrichVideoData(videoData, userId) {
+function enrichVideoData(videoData, userId, targetChannelId = null) {
   const views          = videoData.views          || 0;
   const uploadDate     = videoData.uploadDate     || null;
   const subscriberCount = videoData.subscriberCount || null;
@@ -912,6 +912,7 @@ function enrichVideoData(videoData, userId) {
     thumbnail:         videoData.thumbnail || '',
     views,
     user_id:           userId || 0,
+    target_channel_id: targetChannelId || null,   // ← v6.0.0: çoklu kanal desteği
     // ── New Predictive Fields ──
     upload_date:       uploadDate,
     subscriber_count:  subscriberCount,
@@ -923,9 +924,10 @@ function enrichVideoData(videoData, userId) {
   };
 }
 
+
 // ── Prophet's Pick — Automatic Viral Recommendation System
 /**
- * BabaClutch nişine (Oyun/Kaos) uygun, YouTube'da şu an patlamakta olan
+ * Kullanıcının kanalına uygun, YouTube'da şu an patlamakta olan
  * 3 "Aykırı" videoyu çekip Matrix Vision Glow efektli kart grid'i olarak gösterir.
  * Tetikleyici: initSuggestion() içinde, video sayfasında DEĞİLSEK çağrılır.
  * 
