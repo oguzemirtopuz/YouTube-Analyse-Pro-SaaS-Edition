@@ -141,17 +141,27 @@ install.bat
 START.bat
 ```
 
-### Option B — Manual Setup
+### Option B — Manual Setup (Requires FFmpeg)
+This system requires `ffmpeg` and `ffprobe` for computer vision and audio signal processing.
 
+#### 1. Install FFmpeg
+*   **Windows (Automatic):** Open **Command Prompt (CMD)** or **PowerShell** and run:
+    ```bash
+    winget install Gyan.FFmpeg
+    ```
+    *Note: Close and reopen your terminal after the installation completes to apply PATH updates.*
+*   **Windows (Manual):** Download the essentials archive from [Gyan.dev](https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-essentials.7z). Extract it, go to the `bin/` folder, and copy `ffmpeg.exe` and `ffprobe.exe` directly into this project's root directory (next to `server.pyw`).
+
+#### 2. Run Setup
 ```bash
-# 1. Create and activate virtual environment
+# Create and activate virtual environment
 python -m venv venv
 .\venv\Scripts\activate
 
-# 2. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 3. Launch the server
+# Launch the server
 python server.pyw
 ```
 
