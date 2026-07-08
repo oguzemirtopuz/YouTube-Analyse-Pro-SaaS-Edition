@@ -341,7 +341,8 @@ class AnalysisEngine:
             if DEEPFACE_AVAILABLE:
                 try:
                     analyses = None
-                    for backend in ['retinaface', 'opencv', 'mtcnn']:
+                    # NOT: opencv backend kaldırıldı — Haar Cascade çok fazla yanlış pozitif üretiyor
+                    for backend in ['retinaface', 'mtcnn']:
                         try:
                             analyses = DeepFace.analyze(
                                 img_path=path,
@@ -367,11 +368,20 @@ class AnalysisEngine:
                         region = face_data.get("region", {})
                         fw = region.get("w", 0)
                         fh = region.get("h", 0)
-                        if fw < w * 0.03 or fh < h * 0.03:
+                        # Minimum yüz boyutu: thumbnail'in en az %8'i olmalı
+                        if fw < w * 0.08 or fh < h * 0.08:
+                            continue
+                        # En-boy oranı kontrolü: gerçek yüzler 0.5-2.0 aralığında
+                        aspect_ratio = fw / fh if fh > 0 else 0
+                        if aspect_ratio < 0.5 or aspect_ratio > 2.0:
                             continue
 
                         dominant = face_data.get("dominant_emotion", "neutral")
                         emotions = face_data.get("emotion", {})
+                        # Güven eşiği: dominant duygunun güveni %45'in altındaysa yüzü reddet
+                        dominant_confidence = emotions.get(dominant, 0)
+                        if dominant_confidence < 45.0:
+                            continue
 
                         face_cx = region.get("x", 0) + fw / 2
                         face_cy = region.get("y", 0) + fh / 2

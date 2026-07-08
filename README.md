@@ -37,26 +37,20 @@ Content creators and digital marketers often struggle to understand *why* a vide
 
 ---
 
-## ✨ Latest Release — v6.1.0 RIVAL DNA HIJACKER & SCRIPT DOCTOR
+## ✨ Latest Release — v6.2.0 CONTENT IDEAS & UX REFINEMENT
 
 > [!IMPORTANT]
-> **v6.1.0 - Rival DNA Hijacker & Script Doctor Update 🕵️✍️**
+> **v6.2.0 - Content Ideas & UX Refinement Update 📺✨**
 >
-> **A. Rival DNA Hijacker (NEW):**
-> * **`POST /api/extension/guerilla_strategy`:** Analyzes rival channel DNA scores to generate a user-specific "Guerilla Strategy" report. Contains the competitor's strongest weapon, weakness, and a 3-step action plan.
-> * **`GuerillaStrategyRequest` Model:** Contains `rival_video_id`, `rival_channel`, `dna_data`, `target_channel_id` (multi-channel support), and `lang` (i18n) fields.
-> * **Dynamic Profiling:** User's `content_type` and `purpose` are dynamically fetched from the database and injected into the Groq prompt.
+> **A. Content Ideas (Always-On Prophet Picks):**
+> * **Persistent Visibility:** The "Prophet's Pick" feature is now dynamically loaded in every extension state, including directly on YouTube video pages, providing instant cloneable video ideas.
+> * **DNA Integration:** Added the 🧬 DNA analysis button directly to the Content Ideas cards, completing the seamless 5-minute "clone, analyze, and record" workflow.
+> * **Skeleton Loading:** Implemented a modern CSS shimmer skeleton loader for a premium feel while the AI fetches custom trending niche queries in the background.
 >
-> **B. Script Doctor (NEW):**
-> * **`POST /api/extension/generate_hook_script`:** References competitor/reference video DNA data and transcript to generate a viral hook + 3 different script drafts (Aggressive/Curiosity/Shock) tailored to the user's channel.
-> * **`HookScriptRequest` Model:** Contains `video_id`, `video_url`, `dna_data`, `target_channel_id`, and `lang` fields.
-> * **Transcript Fallback:** Performs estimated analysis from title and DNA scores if subtitles are missing—never returns empty.
->
-> **C. Technical Fixes & Architecture:**
-> * **Dynamic Architecture:** Removed hardcoded channel name references in `clone_video`, `clone_debate`, and all related Groq prompts. Everything is dynamically fetched from the database's `content_type` and `purpose` fields.
-> * **Multi-Channel Support:** Added `target_channel_id` to `CloneVideoRequest` model. All extension endpoints (`clone_video`, `clone_debate`, `guerilla_strategy`, `generate_hook_script`) now correctly target the user's selected channel.
-> * **`is_favorite` Migration:** Added SQLite migration to `init_db` in `app/database/db.py` to add `is_favorite INTEGER DEFAULT 0` column to the `analyses` table.
-> * **Anti-Hallucination Shield:** Dynamically resolved system prompt for chat endpoint (`/api/chat`) based on user's dynamic `content_type`.
+> **B. UX & Architecture Upgrades:**
+> * **Full-Screen Extension:** Migrated from a constrained Chrome popup (650px) to a responsive, full-screen new tab experience (`100vh`) for better readability and a premium UI.
+> * **Competitor Niche Matching:** Refined the competitor finding algorithm in `competitor.py` to strongly pair the user's category with title keywords, drastically improving search accuracy.
+> * **SEO Check-up Context:** Added explicit multi-language explanations (TR/EN/ES) when the system flags irrelevant tags/hashtags, helping creators understand *why* removing them improves algorithm performance.
 ---
 
 ## 🌟 Ecosystem Architecture

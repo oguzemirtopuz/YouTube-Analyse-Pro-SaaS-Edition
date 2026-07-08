@@ -69,7 +69,7 @@ def compute_kill_switch(user_title: str, comp_title: str) -> bool:
 class CompetitorAnalyzer:
 
     @staticmethod
-    def get_competitor(category: str, tags: str, manual_url: str = "", channel_name: str = ""):
+    def get_competitor(category: str, tags: str, manual_url: str = "", channel_name: str = "", user_title: str = ""):
         fallback_data = {
             'title': f"{category.split()[0] if category else 'Viral'} Konseptli Video",
             'channel': 'Sektör Lideri (Otomatik)',
@@ -105,23 +105,55 @@ class CompetitorAnalyzer:
                         'is_fake': False
                     }
                 else:
-                    short_cat = " ".join(category.split()[:2]) if category else ""
-                    short_tags = " ".join([t.strip() for t in tags.split(',')[:2]]) if tags else ""
-                    search_query = f"{short_cat} {short_tags}".strip()
+                    # ── Arama sorgusu: KATEGORİ (her zaman) + başlık keyword'leri ──
+                    # Kategori kanalın niş'ini belirler (yapay zeka, oyun, yemek vs.)
+                    # Başlık ek spesifiklik verir (minecraft, iskender vs.)
+                    cat_keywords = extract_core_keywords(category) if category else set()
+                    title_keywords = extract_core_keywords(user_title) if user_title else set()
+                    tag_keywords = set()
+                    if tags:
+                        tag_keywords = extract_core_keywords(tags.replace(',', ' '))
+
+                    # Niş filtresinde kullanılacak: kategori + başlık keyword'leri birlikte
+                    all_user_keywords = cat_keywords | title_keywords
+
+                    # Sorgu: önce kategori (niş), sonra başlıktan ek spesifik kelimeler
+                    query_parts = []
+                    if cat_keywords:
+                        query_parts.extend(list(cat_keywords)[:3])
+                    # Başlıktan kategori'de olmayan kelimeleri ekle (en fazla 3)
+                    title_unique = title_keywords - cat_keywords
+                    if title_unique:
+                        query_parts.extend(list(title_unique)[:3])
+                    # Etiketlerden de ekle (diğerlerinde olmayanları, en fazla 2)
+                    remaining_tags = tag_keywords - cat_keywords - title_keywords
+                    if remaining_tags:
+                        query_parts.extend(list(remaining_tags)[:2])
+                    # Hiçbir keyword yoksa ham kategori metnini kullan
+                    if not query_parts and category:
+                        query_parts = category.split()[:3]
+
+                    search_query = " ".join(query_parts).strip()
                     if not search_query or len(search_query) < 3:
                         search_query = "YouTube trend"
-                    # ytsearch5: get more candidates, filter your own channel
-                    info = ydl.extract_info(f"ytsearch5:{search_query}", download=False)
+
+                    _logger.debug(f"Rakip araması: sorgu = '{search_query}' (kategori: {category})")
+
+                    # ytsearch10: daha geniş aday havuzu → niş uyumu filtresi uygula
+                    info = ydl.extract_info(f"ytsearch10:{search_query}", download=False)
                     if 'entries' in info and len(info['entries']) > 0:
                         entry = None
                         own_channel_lower = channel_name.lower().strip() if channel_name else ""
+
                         for candidate in info['entries']:
                             if not candidate:
                                 continue
+
+                            # ── Kendi kanalı filtresi (isim + channel_id) ──
                             uploader = (candidate.get('uploader') or candidate.get('channel') or '').lower().strip()
-                            channel_id_str = (candidate.get('channel_id') or candidate.get('uploader_id') or '').lower().strip()
-                            
-                            # Blacklist implementation: Own channel (dynamic) OR ABSOLUTELY SKIP if "babaclutch" (continue)
+                            candidate_channel_id = (candidate.get('channel_id') or candidate.get('uploader_id') or '').lower().strip()
+
+                            # Kendi kanalını atla: isim karşılaştırması
                             if 'babaclutch' in uploader or (own_channel_lower and (
                                 uploader == own_channel_lower or
                                 own_channel_lower in uploader or
@@ -129,14 +161,57 @@ class CompetitorAnalyzer:
                             )):
                                 _logger.debug(f"Rakip araması: kendi kanalı (Self-Comparison) atlandı → {uploader}")
                                 continue
-                                
+
+                            # ── Niş uyumu filtresi ──
+                            # Adayın başlığı ile kullanıcının kategori+başlık keyword'leri
+                            # arasında en az 1 ortak core keyword olmalı
+                            # (minecraft↔minecraft eşleşir, minecraft↔valorant eşleşmez)
+                            if all_user_keywords:
+                                candidate_title = candidate.get('title', '')
+                                candidate_kw = extract_core_keywords(candidate_title)
+                                # Adayın etiketlerini de kontrol et (varsa)
+                                candidate_tags = candidate.get('tags') or []
+                                if candidate_tags:
+                                    candidate_kw |= extract_core_keywords(' '.join(str(t) for t in candidate_tags))
+                                # Tam eşleşme veya kısmi eşleşme (kelime içinde geçme)
+                                has_niche_match = False
+                                for uk in all_user_keywords:
+                                    for ck in candidate_kw:
+                                        if uk == ck or (len(uk) >= 4 and (uk in ck or ck in uk)):
+                                            has_niche_match = True
+                                            break
+                                    if has_niche_match:
+                                        break
+
+                                if not has_niche_match:
+                                    _logger.debug(
+                                        f"Rakip araması: niş uyumsuzluğu atlandı → "
+                                        f"'{candidate_title}' (kullanıcı kw: {all_user_keywords}, aday kw: {candidate_kw})"
+                                    )
+                                    continue
+
                             entry = candidate
                             break
-                        
+
                         if entry is None:
-                            # Fail-Fast: Throw an error if there are no Competitors in the database other than "BabaClutch"
+                            # Niş filtresi çok sıkıysa, filtresiz ilk uygun adayı al
+                            _logger.warning("Rakip araması: niş uyumu bulunamadı, filtresiz ilk aday seçiliyor")
+                            for candidate in info['entries']:
+                                if not candidate:
+                                    continue
+                                uploader = (candidate.get('uploader') or candidate.get('channel') or '').lower().strip()
+                                if 'babaclutch' in uploader or (own_channel_lower and (
+                                    uploader == own_channel_lower or
+                                    own_channel_lower in uploader or
+                                    uploader in own_channel_lower
+                                )):
+                                    continue
+                                entry = candidate
+                                break
+
+                        if entry is None:
                             raise ValueError("Henüz kıyaslanacak başka bir rakip bulunamadı")
-                            
+
                         comp_desc = entry.get('description', '')
                         c_hashes = [w.strip('#').lower() for w in str(comp_desc).split() if w.startswith('#')]
                         c_hashes = list(dict.fromkeys([h for h in c_hashes if h]))
