@@ -1259,7 +1259,7 @@ async def analyze_video(
             AnalysisEngine.analyze_scene_changes, v_path, c_type)
 
         # --- NON-BLOCKING: Competitor analysis (network I/O) ---
-        competitor_data = await run_in_threadpool(CompetitorAnalyzer.get_competitor, c_type, tags, competitor_url, ch_name)
+        competitor_data = await run_in_threadpool(CompetitorAnalyzer.get_competitor, c_type, tags, competitor_url, ch_name, title)
         if competitor_data:
             competitor_data['user_title_len'] = len(title)
             competitor_data['user_tags'] = [t.strip() for t in tags.split(',') if t.strip()]
@@ -1336,7 +1336,7 @@ async def analyze_video(
         elif thumb_data.get("face_detected"):
             vi_parts.append("Thumbnail: Face detected (basic analysis).")
         else:
-            vi_parts.append("Thumbnail: No face detected.")
+            vi_parts.append("Thumbnail: No face detected or could not be identified.")
 
         if thumb_data.get("contrast_ratio", 0) > 0:
             cr = thumb_data["contrast_ratio"]
@@ -1866,6 +1866,13 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
                 if irrelevant_used_tags:
                     checkup_txt += f"  - <b>{L['irrelevant_tags_title']}:</b> <font color='#ef4444'><b>{', '.join(irrelevant_used_tags)}</b></font><br/>"
                     checkup_txt += f"  <font color='#666666'><em>* {L['irrelevant_tags_note']}</em></font><br/>"
+                    # Neden silinmesi gerektiğini açıkla
+                    _why_tag = {
+                        'tr': 'Bu etiketler videonuzun başlığında veya açıklamasında geçmiyor. YouTube algoritması tutarsız etiketleri olumsuz değerlendirebilir, bu yüzden kaldırmanızı öneriyoruz.',
+                        'en': 'These tags do not appear in your video title or description. YouTube\'s algorithm may negatively evaluate inconsistent tags, which is why we recommend removing them.',
+                        'es': 'Estas etiquetas no aparecen en el título o descripción de tu video. El algoritmo de YouTube puede evaluar negativamente las etiquetas inconsistentes, por eso recomendamos eliminarlas.',
+                    }
+                    checkup_txt += f"  <font color='#888888'><em>→ {_why_tag.get(lang, _why_tag['en'])}</em></font><br/>"
 
             if broad_used_hashes or irrelevant_used_hashes:
                 has_error = True
@@ -1876,6 +1883,13 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
                 if irrelevant_used_hashes:
                     checkup_txt += f"  - <b>{L['irrelevant_hashes_title']}:</b> <font color='#ef4444'><b>{', '.join(['#' + h for h in irrelevant_used_hashes])}</b></font><br/>"
                     checkup_txt += f"  <font color='#666666'><em>* {L['irrelevant_hashes_note']}</em></font><br/>"
+                    # Neden silinmesi gerektiğini açıkla
+                    _why_hash = {
+                        'tr': 'Bu hashtag\'ler videonuzun başlığında veya açıklamasında geçmiyor. Kullanmak doğrudan zararlı olmayabilir ancak başlık/açıklamayla uyumlu hashtag\'ler algoritmada daha etkilidir. Bu yüzden kaldırmanızı öneriyoruz.',
+                        'en': 'These hashtags do not appear in your video title or description. Using them may not be directly harmful, but hashtags consistent with your title/description are more effective. That\'s why we recommend removing them.',
+                        'es': 'Estos hashtags no aparecen en el título o descripción de tu video. Usarlos puede no ser directamente dañino, pero los hashtags consistentes con tu título/descripción son más efectivos. Por eso recomendamos eliminarlos.',
+                    }
+                    checkup_txt += f"  <font color='#888888'><em>→ {_why_hash.get(lang, _why_hash['en'])}</em></font><br/>"
 
             if not u_hashtags:
                 has_error = True
@@ -2019,7 +2033,7 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
     _pdf2_tr = {
         "emotion_title": "THUMBNAIL EMOTION ANALYSIS",
         "emotion": "Emotion", "score": "Score (%)", "dominant": "Dominant",
-        "no_face": "No face detected in thumbnail.",
+        "no_face": "Thumbnail'de yüz bulunamadı veya tespit edilemedi.",
         "visual_title": "VISUAL QUALITY METRICS",
         "metric": "Metric", "value": "Value", "status": "Status",
         "contrast": "Contrast (Michelson)", "vibrant": "Vibrant Color Harmony",
@@ -2033,7 +2047,7 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
     _pdf2_en = {
         "emotion_title": "THUMBNAIL EMOTION ANALYSIS",
         "emotion": "Emotion", "score": "Score (%)", "dominant": "Dominant",
-        "no_face": "No face detected in thumbnail.",
+        "no_face": "No face detected in thumbnail or could not be identified.",
         "visual_title": "VISUAL QUALITY METRICS",
         "metric": "Metric", "value": "Value", "status": "Status",
         "contrast": "Contrast (Michelson)", "vibrant": "Vibrant Color Match",
@@ -2047,7 +2061,7 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
     _pdf2_es = {
         "emotion_title": "ANÁLISIS DE EMOCIÓN DE MINIATURA",
         "emotion": "Emoción", "score": "Puntuación (%)", "dominant": "Dominante",
-        "no_face": "No se detectó rostro en la miniatura.",
+        "no_face": "No se detectó rostro en la miniatura o no pudo ser identificado.",
         "visual_title": "MÉTRICAS DE CALIDAD VISUAL",
         "metric": "Métrica", "value": "Valor", "status": "Estado",
         "contrast": "Contraste (Michelson)", "vibrant": "Coincidencia de Color Vibrante",

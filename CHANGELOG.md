@@ -2,9 +2,19 @@
 
 All notable changes to **YouTube Analyse Pro SaaS Edition** will be documented in this file.
 
-## [v6.1.0] - Rival DNA Hijacker & Script Doctor
+## [v6.2.0] - Content Ideas & UX Refinement
 
-### 🕵️ Rival DNA Hijacker (NEW)
+### 📺 Content Ideas (Always-On Prophet Picks)
+- **Persistent Visibility:** The "Prophet's Pick" feature has been rebranded as "İçerik Fikirleri" (Content Ideas) and is now dynamically loaded in every extension state, including directly on YouTube video pages above the current video card.
+- **DNA Integration:** Added the 🧬 DNA analysis button directly to the Content Ideas cards, completing the 5-minute clone-and-record workflow.
+- **Skeleton Loading:** Implemented a modern CSS shimmer skeleton loader while the Groq AI fetches custom trending niche queries in the background.
+
+### 🧩 UX & Architecture Upgrades
+- **Full-Screen Extension:** Migrated from a constrained Chrome popup (650px) to a responsive, full-screen new tab experience (`100vh`) for better readability and a premium feel.
+- **Competitor Niche Matching:** Refined the competitor finding algorithm in `competitor.py` to strongly pair the user's category with title keywords (e.g., "AI" + "clone"), significantly reducing irrelevant cross-niche matches.
+- **SEO Check-up Context:** Added explicit multi-language explanations (TR/EN/ES) when the system flags irrelevant tags/hashtags, helping creators understand *why* removing them improves algorithm performance.
+
+## [v6.1.0] - Rival DNA Hijacker & Script Doctor
 - **`POST /api/extension/guerilla_strategy`:** Analyzes rival channel DNA scores to generate a user-specific "Guerilla Strategy" report. Contains the competitor's strongest weapon, weakness, and a 3-step action plan.
 - **`GuerillaStrategyRequest` Model:** Contains `rival_video_id`, `rival_channel`, `dna_data`, `target_channel_id` (multi-channel support), and `lang` (i18n) fields.
 - **Dynamic Profiling:** User's `content_type` and `purpose` are dynamically fetched from the database and injected into the Groq prompt.

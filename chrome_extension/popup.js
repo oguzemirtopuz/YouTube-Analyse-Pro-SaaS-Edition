@@ -974,6 +974,7 @@ async function fetchProphetPicks(userId) {
   <div class="prophet-card__actions">
     <button class="prophet-btn prophet-btn--clone" data-idx="${idx}" title="Klonla">⚡ Klonla</button>
     <button class="prophet-btn prophet-btn--debate" data-idx="${idx}" title="Tartış">⚔️</button>
+    <button class="prophet-btn prophet-btn--dna" data-idx="${idx}" title="DNA">🧬</button>
   </div>
 </div>`;
     });
@@ -983,8 +984,8 @@ async function fetchProphetPicks(userId) {
     section.id = 'prophet-picks-section';
     section.innerHTML = `
       <div class="prophet-picks-header">
-        <span class="prophet-picks-badge">🔮 PROPHET'S PICK</span>
-        <span class="prophet-picks-sub">Şu an patlıyor</span>
+        <span class="prophet-picks-badge">📺 İÇERİK FİKİRLERİ</span>
+        <span class="prophet-picks-sub">Kanalın İçin Seçildi 🎯</span>
         <button id="btn-prophet-close" class="prophet-close-btn" title="Kapat">✖</button>
       </div>
       <div class="prophet-picks-grid">${cardsHtml}</div>
@@ -1019,6 +1020,13 @@ async function fetchProphetPicks(userId) {
         const card = btn.closest('.prophet-card');
         const vd = _prophetCardToVideoData(card, storedPicks[parseInt(btn.dataset.idx)]);
         debateVideo(vd);
+      });
+    });
+    section.querySelectorAll('.prophet-btn--dna').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.prophet-card');
+        const vd = _prophetCardToVideoData(card, storedPicks[parseInt(btn.dataset.idx)]);
+        analyzeDNA(vd);
       });
     });
 
@@ -1058,6 +1066,16 @@ function _prophetCardToVideoData(card, pick) {
 // ── Opening Intelligence (Contextual Auto-Suggestion) ────────────────────────────────
 async function initSuggestion() {
   const tab = await getActiveTab();
+
+  // ── İÇERİK FİKİRLERİ: Her durumda yükle (async, UI'ı bloklamaz) ──
+  const { user_id: prophetUserId } = await chrome.storage.local.get(['user_id']);
+  // Skeleton shimmer göster — kullanıcı bir şeylerin yüklendiğini bilsin
+  showProphetSkeleton();
+  fetchProphetPicks(prophetUserId).catch(() => {}).finally(() => {
+    removeProphetSkeleton();
+  });
+
+  // Eğer tab yoksa (tam ekran modda URL match bulunamadı vs.) sadece fikirler gösterilir
   if (!tab || !tab.url) return;
 
   if (isYouTubeTab(tab)) {
@@ -1081,7 +1099,7 @@ async function initSuggestion() {
         }
       }
     } catch (e) {}
-    return;
+    return; // Video kartı gösterildi, kanal kontrolüne gerek yok
   }
 
   if (isYouTubeChannelTab(tab)) {
@@ -1129,12 +1147,38 @@ async function initSuggestion() {
     } catch(e) {}
     return;
   }
+}
 
-  // ── Prophet's Pick: We are not on the video page or the channel page ──────
-  // (Show Prophet Picks on home page, search results, trending, etc.)
-  const { user_id: prophetUserId } = await chrome.storage.local.get(['user_id']);
-  // Run asynchronously in background — does not block UI, loads in 2 seconds
-  fetchProphetPicks(prophetUserId).catch(() => {});
+// ── Skeleton Shimmer: Yükleme sırasında placeholder kartlar göster ──
+function showProphetSkeleton() {
+  const idleView = document.getElementById('view-idle');
+  if (!idleView || document.getElementById('prophet-skeleton')) return;
+
+  const skeleton = document.createElement('div');
+  skeleton.id = 'prophet-skeleton';
+  skeleton.innerHTML = `
+    <div class="prophet-picks-header">
+      <span class="prophet-picks-badge">📺 İÇERİK FİKİRLERİ</span>
+      <span class="prophet-picks-sub">Kanalın için yükleniyor...</span>
+    </div>
+    <div class="prophet-picks-grid">
+      <div class="prophet-card skeleton-card"><div class="skeleton-line skeleton-title"></div><div class="skeleton-line skeleton-sub"></div><div class="skeleton-line skeleton-btn"></div></div>
+      <div class="prophet-card skeleton-card"><div class="skeleton-line skeleton-title"></div><div class="skeleton-line skeleton-sub"></div><div class="skeleton-line skeleton-btn"></div></div>
+      <div class="prophet-card skeleton-card"><div class="skeleton-line skeleton-title"></div><div class="skeleton-line skeleton-sub"></div><div class="skeleton-line skeleton-btn"></div></div>
+    </div>
+  `;
+
+  const dashHeader = idleView.querySelector('.dashboard-header');
+  if (dashHeader) {
+    dashHeader.insertAdjacentElement('afterend', skeleton);
+  } else {
+    idleView.insertBefore(skeleton, idleView.firstChild);
+  }
+}
+
+function removeProphetSkeleton() {
+  const skeleton = document.getElementById('prophet-skeleton');
+  if (skeleton) skeleton.remove();
 }
 
 function showSuggestionCard(videoData, subtitle) {
@@ -1171,11 +1215,17 @@ function showSuggestionCard(videoData, subtitle) {
     </div>
   `;
 
-  const dashboardHeader = idleView.querySelector('.dashboard-header');
-  if (dashboardHeader) {
-    dashboardHeader.insertAdjacentElement('afterend', card);
+  // Prophet Picks veya skeleton varsa ondan sonra ekle, yoksa dashHeader'dan sonra
+  const prophetSection = document.getElementById('prophet-picks-section') || document.getElementById('prophet-skeleton');
+  if (prophetSection) {
+    prophetSection.insertAdjacentElement('afterend', card);
   } else {
-    idleView.insertBefore(card, idleView.firstChild);
+    const dashboardHeader = idleView.querySelector('.dashboard-header');
+    if (dashboardHeader) {
+      dashboardHeader.insertAdjacentElement('afterend', card);
+    } else {
+      idleView.insertBefore(card, idleView.firstChild);
+    }
   }
 
   document.getElementById('btn-dismiss-suggestion').addEventListener('click', async () => {
