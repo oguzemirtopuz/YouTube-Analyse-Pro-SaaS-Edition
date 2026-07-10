@@ -1279,7 +1279,7 @@ async def analyze_video(
             try:
                 df = pd.read_csv(c_path, skipinitialspace=True)
                 df.columns = df.columns.str.strip().str.lower()
-                ret_keywords = ['retention', 'izlenme', 'görüntüleme', 'elde tutma']
+                ret_keywords = ['retention', 'izlenme', 'görüntüleme', 'elde tutma', 'kitle tutma']
                 ret_col = next((col for col in df.columns if any(kw in col.lower() for kw in ret_keywords)), None)
                 if ret_col:
                     df[ret_col] = df[ret_col].astype(str).str.replace('%', '', regex=False).str.replace(',', '.', regex=False)
