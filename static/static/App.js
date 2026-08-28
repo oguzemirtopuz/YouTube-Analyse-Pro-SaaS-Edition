@@ -249,47 +249,47 @@ function getVideoSpecificFeedback(res) {
 
     if (res.dynamic_feedback) reasons.push(res.dynamic_feedback);
     if (res.golden_frame_sec > 0) {
-        actions.push(`🎬 ALTIN KARE EMRİ: En yüksek görsel tempo ${res.golden_frame_sec}. saniyede. Thumbnail için bu kareyi KULLAN!`);
+        actions.push(`🎬 ALTIN KARE ÖNERİSİ: En yüksek görsel tempo ${res.golden_frame_sec}. saniyede. Thumbnail için bu kareyi kullanabilirsin.`);
     }
     if (res.seo_score >= 8.5) {
         positives.push(`🔍 SEO BOMBA GİBİ (${res.seo_score}/10): Başlık, açıklama ve etiketler kusursuz uyumlu.`);
     } else if (res.seo_score < 5.5) {
-        reasons.push(`🔍 SEO ZAYIF (${res.seo_score}/10): Başlık kelimeleri açıklamada yok – video kitleye ulaşamaz.`);
-        actions.push(`🔍 SEO EMRİ: Açıklamanın ilk 200 karakterine başlık kelimelerini TAK diye yerleştir.`);
+        reasons.push(`🔍 SEO ZAYIF (${res.seo_score}/10): Başlık kelimeleri açıklamada geçmiyor – video kitleye ulaşmakta zorlanabilir.`);
+        actions.push(`🔍 SEO ÖNERİSİ: Açıklamanın ilk 200 karakterine başlık kelimelerini yerleştirebilirsin.`);
     }
     if (vTempo.length > 0 && vTempo[0] < 1.8) {
-        reasons.push(`Giriş görsel olarak durağan. İzleyici %70 kaçma riski.`);
-        actions.push(`🎬 EDİT EMRİ: 00:01'e dinamik zoom veya geçiş ekle.`);
+        reasons.push(`Giriş görsel olarak durağan. İzleyicinin erken ayrılma ihtimali artabilir.`);
+        actions.push(`🎬 EDİT ÖNERİSİ: 00:01'e dinamik zoom veya geçiş ekleyebilirsin.`);
     }
     let deadZoneFound = false;
     vTempo.forEach((val, idx) => {
         if (!deadZoneFound && idx > 2 && val < 1.1 && (aTempo[idx] || 0) < 1.5) {
             reasons.push(`${idx}. saniyede ses ve görüntü durağan (Ölü Bölge).`);
-            actions.push(`🎬 KES EMRİ: ${idx - 1} ile ${idx + 1} arası sahneyi sil veya tempo kat.`);
+            actions.push(`🎬 KESİM ÖNERİSİ: ${idx - 1} ile ${idx + 1} arası sahneyi kısaltabilir veya tempo katabilirsin.`);
             deadZoneFound = true;
         }
     });
     if (res.coaching_mode === "PROACTIVE" && ret.worst_drop_sec > 0) {
         reasons.push(`${ret.worst_drop_sec}. saniyede %${ret.drop_percent} kitle kaybı – gerçek veriyle tespit edildi.`);
-        actions.push(`📊 MÜDAHALE EMRİ: Bu saniyedeki sahneyi videonun en heyecanlı karesiyle değiştir.`);
+        actions.push(`📊 RETENTION ÖNERİSİ: Bu saniyedeki sahneyi videonun en heyecanlı karelerinden biriyle değiştirebilirsin.`);
     } else if (res.coaching_mode === "PREDICTIVE" && ret.score < 6.5) {
-        reasons.push("Tahmini retention düşük – giriş izleyiciyi yakalayamıyor.");
-        actions.push(`📊 TAHMİN EMRİ: İlk 10 sn'yi baştan çek.`);
+        reasons.push("Tahmini retention düşük – giriş izleyiciyi yakalamakta zorlanıyor olabilir.");
+        actions.push(`📊 GİRİŞ ÖNERİSİ: İlk 10 sn'yi baştan çekmeyi deneyebilirsin.`);
     }
     if (res.thumb_score !== null && res.thumb_score < 4.5) {
-        reasons.push(`Thumbnail zayıf (${res.thumb_score}/10) – tıklanma oranı düşürür.`);
-        actions.push(`📸 IŞIK EMRİ: Parlaklık ve renk doygunluğunu artır.`);
+        reasons.push(`Thumbnail zayıf (${res.thumb_score}/10) – tıklanma oranını düşürebilir.`);
+        actions.push(`📸 IŞIK ÖNERİSİ: Parlaklık ve renk doygunluğunu artırabilirsin.`);
     } else if (res.thumb_score !== null && res.thumb_score >= 7.5) {
         positives.push(`📸 Thumbnail güçlü (${res.thumb_score}/10) – yüksek tıklanma potansiyeli.`);
     }
     if (res.tech_score < 7) {
         if (tech.max_gap > 8) {
             reasons.push(`Videonda ${tech.max_gap} sn ölü bölge.`);
-            actions.push(`🎬 TEMPO EMRİ: Bu boşluğu kes veya efektle doldur.`);
+            actions.push(`🎬 TEMPO ÖNERİSİ: Bu boşluğu kesebilir veya efektle doldurabilirsin.`);
         }
         if (tech.peaks < 8) {
             reasons.push(`Sadece ${tech.peaks} patlama – video düz, enerjisiz.`);
-            actions.push(`⚡ PATLAMA EMRİ: Her 6-8 sn'ye cut/zoom/ses efekti ekle.`);
+            actions.push(`⚡ PATLAMA ÖNERİSİ: Her 6-8 sn'ye cut/zoom/ses efekti ekleyebilirsin.`);
         }
     }
     if (res.retention_score >= 7.0) positives.push(`Giriş güçlü – retention ${res.retention_score}/10, izleyici kalıyor.`);
@@ -309,7 +309,7 @@ function getVideoSpecificFeedback(res) {
             <div style="margin:24px 0; padding:20px; background:rgba(220,38,38,0.12); border:1px solid #ef4444; border-radius:14px; line-height:1.6;">
                 <strong style="color:#f87171; font-size:1.15rem;">Videodaki geliştirilmesi gereken yönler</strong><br><br>
                 ${reasons.map(r => `• ${r}`).join('<br><br>')}
-                <br><br><strong style="color:#fbbf24;">Şimdi şunları yap:</strong>
+                <br><br><strong style="color:#fbbf24;">Bu durumda şunları deneyebilirsin:</strong>
                 <ul style="margin-top:12px; padding-left:24px; line-height:1.7;">
                     ${actions.map(a => `<li>${a}</li>`).join('')}
                 </ul>

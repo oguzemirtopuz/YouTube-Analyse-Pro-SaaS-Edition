@@ -19,6 +19,38 @@ from app.services.security import CryptoManager, CryptoDecryptionError
 _logger = logging.getLogger("yt_analiz.ai")
 
 
+# ─── Advisory tone ─────────────────────────── ────────────────────────────
+# Single source of truth for the wording rule every user-facing prompt injects.
+# The examples use %X rather than a real number so the rule itself can never be
+# mistaken for a growth promise by the tone tests.
+
+ADVISORY_TONE_RULE = (
+    "ADVISORY TONE (MANDATORY): Every recommendation you write must read as an option the "
+    "creator may choose, never as an order and never as a promised result.\n"
+    "- Phrase advice as a suggestion: 'bunu yapabilirsin', 'sunu deneyebilirsin', "
+    "'dusunebilirsin', 'you could try', 'you may want to', 'podrias probar'.\n"
+    "- NEVER use commands or obligations: 'yap', 'ekle', 'sil', 'yapmalisin', 'zorundasin', "
+    "'acilen', 'derhal', 'do this', 'you must', 'you should', 'debes'.\n"
+    "- NEVER promise a numeric outcome such as 'CTR %X artar', 'izlenmen X kat artar' or "
+    "'this will increase views by X%'. You MAY state measured facts from the supplied data "
+    "(for example 'retention drops at second 12'), but describe the effect of a change only "
+    "as a possibility: 'artirmaya yardimci olabilir', 'may help', 'puede ayudar'.\n"
+    "- Stay concrete: keep giving the exact timestamp, colour, wording or scene. "
+    "Specific but optional — offer it, do not command it."
+)
+
+# For endpoints whose payload is creative material (titles, hooks, thumbnail copy)
+# rather than counsel: the asset itself stays punchy, the guidance around it does not.
+ADVISORY_TONE_RULE_CREATIVE = (
+    "ADVISORY TONE (MANDATORY): Titles, hooks and thumbnail descriptions are creative assets — "
+    "keep those punchy and bold. But every sentence that tells the creator what to DO "
+    "(analysis, warnings, tempo notes, tactics, summaries) must read as a suggestion "
+    "('bunu deneyebilirsin', 'you could try', 'podrias probar'), never as an order "
+    "('bunu yap', 'you must', 'derhal') and never as a promised number "
+    "('CTR %X artar', 'views will double')."
+)
+
+
 # ─── Groq API key ──────────────────────────── ────────────────────────────
 
 async def get_groq_api_key() -> str:
@@ -107,10 +139,10 @@ async def generate_ai_game_feedback(c_type: str, c_aud: str, c_purp: str, tech_s
         f"IMPORTANT: DO NOT use the example phrase about 'happy face' and 'looking at camera'. It was a placeholder. Describe the actual visual energy of BabaClutch's gaming thumbnail instead. "
         f"Start with an emoji + 'ANALİZ PRO KOÇU: ' "
         f"(ES='ENTRENADOR PRO: ', EN='PRO COACH: '). "
-        f"Be actionable and punchy. "
         f"If visual insights are provided, reference them ONLY if they are factually confirmed (e.g., contrast ratio, color match - NOT face if no face was detected). "
         f"Focus on what editing or hook technique works best for THIS content's audience. "
-        f"HOOK FORMULA: Always end your advice with an 'Uygulama Örneği' (Application Example). Be extremely concrete. Example: 'Uygulama Örneği: 00:01'de ekran sallantı efektiyle (camera shake) birlikte \"Bunu Beklemiyorduk!\" yazısını belirgin bir fontla ekrana getir'. "
+        f"HOOK FORMULA: Always end your advice with an 'Uygulama Örneği' (Application Example). Be extremely concrete but keep it optional. Example: 'Uygulama Örneği: 00:01'de ekran sallantı efektiyle (camera shake) birlikte \"Bunu Beklemiyorduk!\" yazısını belirgin bir fontla ekrana getirebilirsin'. "
+        f"\n\n{ADVISORY_TONE_RULE}\n"
     )
 
 

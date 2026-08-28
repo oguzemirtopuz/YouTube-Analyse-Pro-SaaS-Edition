@@ -37,20 +37,18 @@ Content creators and digital marketers often struggle to understand *why* a vide
 
 ---
 
-## ✨ Latest Release — v6.2.0 CONTENT IDEAS & UX REFINEMENT
+## ✨ Latest Release — v6.3.0 ADVISORY TONE
 
 > [!IMPORTANT]
-> **v6.2.0 - Content Ideas & UX Refinement Update 📺✨**
+> **v6.3.0 — Advisory Tone 🗣️**
 >
-> **A. Content Ideas (Always-On Prophet Picks):**
-> * **Persistent Visibility:** The "Prophet's Pick" feature is now dynamically loaded in every extension state, including directly on YouTube video pages, providing instant cloneable video ideas.
-> * **DNA Integration:** Added the 🧬 DNA analysis button directly to the Content Ideas cards, completing the seamless 5-minute "clone, analyze, and record" workflow.
-> * **Skeleton Loading:** Implemented a modern CSS shimmer skeleton loader for a premium feel while the AI fetches custom trending niche queries in the background.
+> All recommendations (analysis screen, PDF, AI coach, chat, and extension DNA badges) now read as **options the creator can take**, never as orders (`bunu yap`) and never as guaranteed outcomes (`CTR %40 artar` / `izlenme garantisi`).
 >
-> **B. UX & Architecture Upgrades:**
-> * **Full-Screen Extension:** Migrated from a constrained Chrome popup (650px) to a responsive, full-screen new tab experience (`100vh`) for better readability and a premium UI.
-> * **Competitor Niche Matching:** Refined the competitor finding algorithm in `competitor.py` to strongly pair the user's category with title keywords, drastically improving search accuracy.
-> * **SEO Check-up Context:** Added explicit multi-language explanations (TR/EN/ES) when the system flags irrelevant tags/hashtags, helping creators understand *why* removing them improves algorithm performance.
+> * **Copy:** PDF, UI, and on-screen action lists use suggestion language in TR/EN/ES (`bunu deneyebilirsin`, `you could try`, `podrías probar`).
+> * **AI:** A shared tone rule is injected into Groq prompts so coach and strategy text stay specific but optional.
+> * **Extension badges:** Viral-potential labels no longer promise views; low-score labels no longer use obligation mood (`GELİŞTİRİLMELİ` → `GELİŞTİRİLEBİLİR`).
+>
+> Older notes live in the [Changelog](CHANGELOG.md).
 ---
 
 ## 🌟 Ecosystem Architecture
@@ -83,7 +81,7 @@ A heavy-duty backend built with **Python 3.11, FastAPI, and PyWebView**, powered
 | 🎬 **Computer Vision** | Detects scene cuts, fast-paced edits, and brightness variations using OpenCV |
 | 🎵 **Audio Intelligence** | Analyzes audio tempo, dead air (silences), and decibel peaks via Librosa |
 | 📊 **Retention Score** | Calculates a highly accurate score based on hook momentum, frame density, and pacing |
-| 🤖 **AI Coach** | Analyzes thumbnails, reads transcripts, and delivers actionable brutal feedback |
+| 🤖 **AI Coach** | Analyzes thumbnails, reads transcripts, and offers specific, optional editing and hook suggestions |
 | 🔐 **Security** | AES-encrypted API key storage (Groq/Gemini) with SQLite for analysis history |
 | 📄 **PDF Reports** | Professional multi-language (EN/TR/ES) export with visual charts and comparison tables |
 | 👥 **Multi-User SaaS** | Full user auth, per-channel analytics, Google OAuth2, and email verification |
