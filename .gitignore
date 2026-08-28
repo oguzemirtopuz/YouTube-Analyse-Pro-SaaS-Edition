@@ -25,3 +25,6 @@ refactor.py
 test_*.py
 search*.py
 search_*.py
+
+# ...but the real pytest suite is tracked
+!tests/test_*.py

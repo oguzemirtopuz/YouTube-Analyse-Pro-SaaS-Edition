@@ -2,6 +2,25 @@
 
 All notable changes to **YouTube Analyse Pro SaaS Edition** will be documented in this file.
 
+## [v6.3.0] - Advisory Tone
+
+Every recommendation shown to the creator — analysis screen, PDF report, AI coach, chat, Chrome extension badges, and prefilled coach questions — is now phrased as a suggestion, never as an order and never as a promised result.
+
+### 🗣️ Product copy
+- **PDF & UI strings (`translations.xlsx`):** Imperative labels (`EMRİ` / `ORDER`), obligation mood (`-malısın`, `You should`), urgency (`acil`, `derhal`), and numeric promises (`CTR %40 artar`) rewritten as options (`bunu deneyebilirsin`, `you could try`, `podrías probar`).
+- **On-screen action list (`static/App.js`):** Rule-based feedback lines no longer command a specific edit; they offer it.
+- **Offline coach fallback (`analysis_engine.py`):** When Groq is unavailable, the static sentences stay in the same advisory mood (TR/EN/ES).
+- **Chrome extension DNA badges:** `Yüksek izlenme garantisi` / `High view guarantee` → potential wording; `GELİŞTİRİLMELİ` / `NEEDS IMPROVEMENT (Fix shortcomings)` → `GELİŞTİRİLEBİLİR` / `ROOM TO IMPROVE`.
+- **Quick questions:** `Thumbnail nasıl olmalı?` → `Thumbnail nasıl olabilir?` (and matching EN/ES).
+
+### 🤖 AI prompts
+- **Shared tone rule** in `ai_service.py` (`ADVISORY_TONE_RULE` / `ADVISORY_TONE_RULE_CREATIVE`) injected into coach, chat, clone, debate, guerilla, script doctor, and success-formula prompts.
+- Creative assets (titles, hooks, thumbnails) stay punchy; surrounding guidance is still a suggestion, not a command.
+
+### ✅ Tests
+- Advisory-tone pytest suite under `tests/` (PDF/UI copy, prompts, extension, report email).
+- `pytest.ini` limits collection to `tests/` so manual probe scripts such as `test_prophet.py` are not treated as tests.
+
 ## [v6.2.0] - Content Ideas & UX Refinement
 
 ### 📺 Content Ideas (Always-On Prophet Picks)

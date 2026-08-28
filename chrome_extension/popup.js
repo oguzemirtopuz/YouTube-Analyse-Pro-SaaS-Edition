@@ -1426,7 +1426,7 @@ function _renderDNAResult(data, videoData) {
     tierBg     = 'rgba(245,158,11,0.15)';
     tierBorder = 'rgba(245,158,11,0.55)';
   } else if (overall >= 75) {
-    tierLabel  = '🔥 ' + t('tier_viral_pot') + ' (Yüksek ' + t('views') + ' garantisi)';
+    tierLabel  = '🔥 ' + t('tier_viral_pot_high');
     tierColor  = '#f97316';
     tierBg     = 'rgba(249,115,22,0.13)';
     tierBorder = 'rgba(249,115,22,0.45)';

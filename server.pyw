@@ -378,7 +378,13 @@ detect_system_capabilities()
 # ═══════════════════════════════════════════════════════════
 # AI SERVICE (app/services/ai_service.py)
 # ═══════════════════════════════════════════════════════════
-from app.services.ai_service import get_groq_api_key, generate_ai_game_feedback, analyze_image_with_gemini
+from app.services.ai_service import (
+    get_groq_api_key,
+    generate_ai_game_feedback,
+    analyze_image_with_gemini,
+    ADVISORY_TONE_RULE,
+    ADVISORY_TONE_RULE_CREATIVE,
+)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -1127,7 +1133,7 @@ Devuelve SOLO un Array JSON, responde en Español:
 [{{"title":"...","hook":"...","thumbnail":"..."}}]"""
             }
 
-            prompt = lang_prompts.get(lang, lang_prompts["en"])
+            prompt = lang_prompts.get(lang, lang_prompts["en"]) + f"\n\n{ADVISORY_TONE_RULE_CREATIVE}"
 
             
             if groq_api_key:
@@ -2689,7 +2695,7 @@ Titles should be short, curiosity-inducing and between 50-70 characters."""
         no_analysis_instruction = """
 NO ANALYSIS RULE — The user has not analyzed any video yet. At the very end of each response add (in the user's language):
 ---
-📊 Upload your video to YouTube Analytics Pro so I can give you a precise, personalized answer — I'll show you exactly when viewers drop off, your SEO score and competitor comparison!
+📊 If you upload your video to YouTube Analytics Pro, I could give you a precise, personalized answer — I'd be able to show you exactly when viewers drop off, your SEO score and competitor comparison.
 ---"""
 
     # --- MEMORY SYSTEM: Create memory block ---
@@ -2699,7 +2705,7 @@ NO ANALYSIS RULE — The user has not analyzed any video yet. At the very end of
     if past_feedbacks_text:
         memory_block += f"\\n\\n📚 PAST ANALYSIS NOTES (Last 5 analysis coach comments, oldest to newest):\\n{past_feedbacks_text}"
 
-    system_prompt = f"""IDENTITY: You are 'Analiz Pro AI: Stratejik Veri Analisti' (Strategic Data Analyst) — the world's most elite, data-driven, and ruthless YouTube strategist.
+    system_prompt = f"""IDENTITY: You are 'Analiz Pro AI: Stratejik Veri Analisti' (Strategic Data Analyst) — an elite, data-driven and candid YouTube strategist who advises rather than commands.
 Channel Type: {ch_type}
 {analysis_block}{memory_block}
 
@@ -2707,11 +2713,11 @@ Channel Type: {ch_type}
 Detect the exact language of the user's message and respond EXCLUSIVELY in that same language. (User TR -> Respond TR, User EN -> Respond EN, User ES -> Respond ES). NEVER mix languages.
 
 🧠 STRATEGY AND DATA PROCESSING DIRECTIVES:
-1. BE DATA-RUTHLESS: Use the provided analytics (Retention, SEO, Tempo) like a surgeon. If the "Excitement Score" is low or there are "Dead Zones", give direct orders mentioning the exact timestamps. Do not sugarcoat.
+1. BE DATA-PRECISE: Use the provided analytics (Retention, SEO, Tempo) like a surgeon. If the "Excitement Score" is low or there are "Dead Zones", name the exact timestamps and offer a concrete option for each. Be honest about the data — do not sugarcoat the diagnosis, but keep the remedy a suggestion.
 2. VISUAL INTELLIGENCE FILTER: You MUST use the visual data in your strategy:
-   - CONTRAST: If contrast is low, warn them that "It will be invisible on mobile" and suggest specific complementary colors (e.g., Purple/Yellow).
-   - EXCITEMENT SCORE & CUTS: Use the scene cut frequency and motion data to command editing actions like "Add a dynamic zoom" or "Increase your cut frequency to every 4 seconds".
-3. ELITE TONE: Speak like a top-tier strategist managing millions of subscribers. Be direct, authoritative, actionable, and use bullet points. **Bold** key terms. No unnecessary fluff.
+   - CONTRAST: If contrast is low, tell them it may be hard to read on mobile and offer specific complementary colors (e.g., Purple/Yellow) they could try.
+   - EXCITEMENT SCORE & CUTS: Use the scene cut frequency and motion data to offer editing options like "you could add a dynamic zoom here" or "cutting roughly every 4 seconds might keep the pace up".
+3. ELITE TONE: Speak like a top-tier strategist managing millions of subscribers. Be direct, specific and useful, use bullet points, **bold** key terms, no unnecessary fluff — but frame every recommendation as an option the creator can take or leave.
 4. MANDATORY HOOKS (ANTI-GENERIC): If addressing viewer drop-offs (retention), you MUST provide a specific Hook Formula: 1. Spoken Script, 2. Psychological Trigger, 3. On-Screen Visual Action. NEVER say "surprise them in the first 10 seconds" or "ilk 10 saniyede şaşırt". You must answer HOW exactly with a concrete scenario.
 5. BOUNDARIES: You ONLY discuss YouTube algorithms, content strategy, video pacing, and SEO. Reject all off-topic questions by stating your role.
 6. NO-HALLUCINATION RULE: Use ONLY the provided Channel Type and Purpose for your strategy. DO NOT suggest random games or content types that were not explicitly provided in the input context. If you do not know the answer to a question, explicitly state "I don't know" (veya "Bilmiyorum"). NEVER make up information or give wrong answers.
@@ -2727,6 +2733,8 @@ Detect the exact language of the user's message and respond EXCLUSIVELY in that 
     - IMPORTANT: DO NOT describe generic thumbnail elements. Describe the actual visual energy that fits the channel's content type ({ch_type}).
 11. RAKİP ANALİZİ VE ÖNERİSİ:
     - Kullanıcının kendi kanalını rakip olarak ASLA önerme. Rakip analizleri her zaman harici kanallar üzerinden yapılmalıdır.
+
+12. {ADVISORY_TONE_RULE}
 
 {title_instruction}
 {no_analysis_instruction}
@@ -3072,6 +3080,8 @@ Sana verilen orijinal video başlığı ve altyazı (transcript) verilerini anal
 📝 Senaryo (ilk 2000 karakter):
 {transcript[:2000] if transcript else "Altyazı bulunamadı. Sadece başlığa göre analiz yap."}
 
+{ADVISORY_TONE_RULE_CREATIVE}
+
 KURALLAR:
 1. VİRAL ANATOMİ: Videonun neden viral olduğunu (psikolojik tetikleyici ve kanca) analiz et.
 2. FİKİR ÜRETİMİ: Orijinal videonun ruhunu kopyalayan 3 farklı video fikri sun.
@@ -3234,10 +3244,9 @@ def calculate_chaos_score(transcript: str, titles: list[str]) -> dict:
 
     # FatherClutch Clause
     if final_score < 6:
-        potential = int((6 - final_score) * 15)
-        verdict = f"The competitor doesn't have enough chaos. If you add your own style, there's an estimated %{potential} more view potential.\n<br><span style='font-size:11px; color:#94a3b8; font-style:italic;'>(Note: This ratio is calculated by our mathematical algorithm that analyses the aggressiveness of the competitor's titles, speaking pace, and emotionally loaded word count.)</span>"
+        verdict = "The competitor's style is not especially high-energy, so leaning into your own style could help you stand out.\n<br><span style='font-size:11px; color:#94a3b8; font-style:italic;'>(Note: This assessment comes from our mathematical algorithm that analyses the aggressiveness of the competitor's titles, speaking pace, and emotionally loaded word count.)</span>"
     else:
-        verdict = "The competitor is just as aggressive in style! Your advantage lies in niche expertise."
+        verdict = "The competitor is just as aggressive in style — your edge could come from niche expertise."
 
     return {
         "score": final_score,
@@ -3370,7 +3379,9 @@ async def _call_groq_battle(api_key: str, my_data: dict, rival_data: dict) -> st
     import requests
     
     prompt = f"""
-Sen acımasız, elit ve şeytani zekaya sahip bir YouTube Strateji Uzmanısın. Jenerik kurumsal dilden ("SEO'yu artır", "Kaliteyi yükselt") nefret edersin.
+Sen keskin zekalı, elit bir YouTube Strateji Uzmanısın. Jenerik kurumsal dilden ("SEO'yu artır", "Kaliteyi yükselt") nefret edersin.
+
+{ADVISORY_TONE_RULE}
 
 [KULLANICININ VERİLERİ]
 - Kanalın Kalite Puanı: {my_data.get('avg_score', 0)} / 10
@@ -3380,14 +3391,14 @@ Sen acımasız, elit ve şeytani zekaya sahip bir YouTube Strateji Uzmanısın. 
 - Son Yüklediği Videolar: {', '.join(rival_data.get('recent_titles', []))}
 
 [GÖREVİN]
-Bana "Savaş Raporu" formatında kısa, vurucu ve acımasız bir analiz yaz. Kurumsal ChatGPT ağzını ASLA kullanma.
+Bana "Savaş Raporu" formatında kısa ve vurucu bir analiz yaz. Kurumsal ChatGPT ağzını ASLA kullanma.
 Aşağıdaki formatın DIŞINA ÇIKMA:
 
 ⚔️ RAKİP ANALİZİ:
 (Rakibin son videolarına bakarak ne tarz bir kitleyi elinde tuttuğunu 1-2 cümleyle, net ve sivri bir dille özetle. Örn: "Rakip sürekli teknoloji incelemeleriyle kolaya kaçıyor.")
 
 🔥 GERİLLA TAKTİKLERİ:
-(Kullanıcının kalite puanı {my_data.get('avg_score', 0)}. Rakibin 'Son Yüklediği Videolar' listesinden bir videoyu hedef alarak, kullanıcının o konunun TAM TERSİ BİR AÇIYLA (Zıtlık, Eleştiri, Kışkırtma veya Merak Boşluğu) rakibin izleyicisini nasıl çalabileceğine dair 2 spesifik video fikri/kancası ver. Kesinlikle "kaliteyi artır", "sosyal medya kullan" gibi genel geçer şeyler yazma! Doğrudan "Şu videonun başlığını şöyle çevir" de.)
+(Kullanıcının kalite puanı {my_data.get('avg_score', 0)}. Rakibin 'Son Yüklediği Videolar' listesinden bir videoyu hedef alarak, kullanıcının o konunun TAM TERSİ BİR AÇIYLA (Zıtlık, Eleştiri, Kışkırtma veya Merak Boşluğu) rakibin izleyicisini nasıl çekebileceğine dair 2 spesifik video fikri/kancası ver. Kesinlikle "kaliteyi artır", "sosyal medya kullan" gibi genel geçer şeyler yazma! Spesifik ol ama öneri olarak sun: "Şu videonun başlığını şöyle çevirebilirsin" gibi.)
 """
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -3396,7 +3407,7 @@ Aşağıdaki formatın DIŞINA ÇIKMA:
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": "Sen acımasız bir YouTube stratejistisin."},
+            {"role": "system", "content": "Sen keskin ama tavsiye dilini bozmayan bir YouTube stratejistisin."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
@@ -3931,13 +3942,15 @@ async def _call_groq_debate(
     transcript_excerpt = transcript[:2000] if transcript else "(No subtitle available)"
 
     # ── Persona A: Cruel Critic ──────────────────── ────────────────────
-    prompt_a = f"""Sen acımasız, veriye dayalı, CTR (Tıklanma Oranı) odaklı bir YouTube stratejistisin.
+    prompt_a = f"""Sen keskin, veriye dayalı, CTR (Tıklanma Oranı) odaklı bir YouTube stratejistisin.
 Sentimental düşünmez, sadece sayı ve psikoloji konuşursun.
 Kullanıcının kanalı: {content_type}. Amaç: {purpose}.
 
 📌 Orijinal Başlık: {title}
 📺 Orijinal Kanal: {channel}
 📝 Altyazı (ilk 2000 karakter): {transcript_excerpt}
+
+{ADVISORY_TONE_RULE_CREATIVE}
 
 Kurallar:
 1. Mantık, kısıtlama ve merak boşluğu kullan — duygusal clickbait değil.
@@ -3953,6 +3966,8 @@ Kullanıcının kanalı: {content_type}. Amaç: {purpose}.
 📌 Orijinal Başlık: {title}
 📺 Orijinal Kanal: {channel}
 📝 Altyazı (ilk 2000 karakter): {transcript_excerpt}
+
+{ADVISORY_TONE_RULE_CREATIVE}
 
 Kurallar:
 1. Merak, şok, korku ve aşırı dramatizm kullan. Sınırı zorla.
@@ -4057,7 +4072,7 @@ Kurallar:
     # ── Judge AI: Pick the Winner or Blend and Generate One Idea ──────────────
     # NOTE: _debate_pi is injected AFTER prompt_judge is defined (below)
 
-    prompt_judge = f"""Sen acımasız ve vizyoner bir YouTube İçerik Hakemi ve Algoritma Uzmanısın.
+    prompt_judge = f"""Sen titiz ve vizyoner bir YouTube İçerik Hakemi ve Algoritma Uzmanısın.
 
 KULLANICI PROFİLİ: 
 Kullanıcının kanal tipi: {content_type}. Kanalın amacı: {purpose}.
@@ -4079,6 +4094,8 @@ Başlık  : {idea_b.get('title', '')}
 Kanca   : {idea_b.get('hook', '')}
 Thumbnail: {idea_b.get('thumbnail', '')}
 
+{ADVISORY_TONE_RULE_CREATIVE}
+
 KURAL 1 (ZORUNLU BAŞLANGIÇ): 
 Bu videonun başarısının altındaki psikolojik tetikleyiciyi "viral_anatomi" alanında açıkla.
 
@@ -4088,7 +4105,7 @@ Sonra bu fikirleri harmanlayıp EN GÜÇLÜ TEK BİR VİDEO FİKRİ sun (kazanan
 {thumbnail_rule}
 
 KURAL 3 (KESİN NİŞ UYARISI): 
-Analiz ettiğin orijinal videonun kategorisi kullanıcının "Oyun/Kaos" konseptiyle uyuşmuyorsa, "nis_uyarisi" alanına KESİNLİKLE şu uyarıyı ekle: "⚠️ NİŞ UYARISI: Bu kanalın konsepti senin kanalının (Oyun/Kaos) konseptiyle uyuşmuyor. Klonlama yaparken konsepti kendi nişine uyarlamaya dikkat et!" (Uyuşuyorsa boş bırak).
+Analiz ettiğin orijinal videonun kategorisi kullanıcının "Oyun/Kaos" konseptiyle uyuşmuyorsa, "nis_uyarisi" alanına KESİNLİKLE şu uyarıyı ekle: "⚠️ NİŞ UYARISI: Bu kanalın konsepti senin kanalının (Oyun/Kaos) konseptiyle uyuşmuyor. Klonlama yaparken konsepti kendi nişine uyarlamayı düşünebilirsin." (Uyuşuyorsa boş bırak).
 
 KURAL 4 (KESİN FORMAT KURALI): 
 Çıktın KESİNLİKLE bir dizi (array) [...] OLAMAZ. Çıktın KESİNLİKLE bir obje (object) {{...}} olmak zorundadır. Objenin içinde "viral_anatomi", "eleştirmen_fikri", "buyucu_fikri", "kazanan_baslik", "kazanan_kanca", "kazanan_thumbnail" ve "nis_uyarisi" anahtarları ZORUNLUDUR. 
@@ -4937,7 +4954,9 @@ Ortalama DNA Puanları:
 - CTA (Aksiyon Çağrısı): {avg_scores['cta']}/100
 - Emotion (Duygu Yoğunluğu): {avg_scores['emotion']}/100
 
-Bu kanalın "Başarı Formülü"nü 3-4 cümleyle özetle. Hangi DNS skoru en güçlü? En zayıf nokta ne? Bu kanala rakip olmak için ne yapılmalı? {_formula_lang_rule}"""
+Bu kanalın "Başarı Formülü"nü 3-4 cümleyle özetle. Hangi DNA skoru en güçlü? En zayıf nokta ne? Bu kanala rakip olmak için neler denenebilir? {_formula_lang_rule}
+
+{ADVISORY_TONE_RULE}"""
 
             def _fpost():
                 return _req2.post(
@@ -5078,6 +5097,8 @@ Genel DNA   : {rival_overall}/100
 Bu rakibin DNA verilerini analiz ederek bana SADECE aşağıdaki JSON formatında bir "Guerilla Strateji" raporu üret.
 KURAL: Çıktı YALNIZCA geçerli JSON olmalıdır. Başka açıklama veya metin yazma.
 
+{ADVISORY_TONE_RULE}
+
 {{
   "rival_silah": "Rakibin en güçlü DNA silahı ve neden izleyiciyi bağladığı (2 cümle)",
   "benim_avantajim": "Rakibe kıyasla kendi kanalımın hangi alanda üstün olabileceği veya olabileceği fırsat (2 cümle)",
@@ -5102,7 +5123,7 @@ KURAL: Çıktı YALNIZCA geçerli JSON olmalıdır. Başka açıklama veya metin
       "hedef_metrik": "Bu aksiyonun hangi DNA metriğini hedeflediği"
     }}
   ],
-  "guerilla_ozet": "3-4 cümlelik saldırı planı özeti. Hangi zayıflığı ne zaman nasıl istismar edeceksin?"
+  "guerilla_ozet": "3-4 cümlelik strateji özeti: rakibin hangi zayıf noktasından ne zaman ve nasıl faydalanabileceğin (öneri dilinde)"
 }}{_lang_rule}"""
 
     def _gpost():
@@ -5283,6 +5304,8 @@ DNA Genel    : {ref_overall}/100
 ━━━ GÖREVİN ━━━
 Bu referans videoyu inceleyerek benim kanalım ({content_type} / {purpose}) için VİRAL bir hook ve senaryo taslağı üret.
 KURAL: Çıktı YALNIZCA aşağıdaki JSON formatında olmalıdır. Başka hiçbir metin yazma.
+
+{ADVISORY_TONE_RULE_CREATIVE}
 
 {{
   "kanca_analizi": "Referans videonun kanca stratejisi ve neden etkili/etkisiz olduğu (2 cümle)",

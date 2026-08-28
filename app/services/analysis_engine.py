@@ -118,14 +118,14 @@ class AnalysisEngine:
             prefix = "📢 " + ("CHANNEL ANALYSIS" if is_en else "ANÁLISIS DE CANAL" if is_es else "KANAL ANALİZİ") + f" ({c_type_raw.upper()}): "
             if tech_score < 5.0:
                 feedback = (f"{prefix}" +
-                            (f"There's stagnation. Tighten the editing a bit so the '{c_aud_raw}' audience doesn't get bored." if is_en else
-                            f"Hay estancamiento. Ajusta un poco el montaje para que la audiencia '{c_aud_raw}' no se aburra." if is_es else
-                            f"Durağanlık var. '{c_aud_raw}' kitlesini sıkmamak için kurguyu biraz sıkılaştır."))
+                            (f"There's some stagnation. You could tighten the editing a bit so the '{c_aud_raw}' audience doesn't get bored." if is_en else
+                            f"Hay algo de estancamiento. Podrías ajustar un poco el montaje para que la audiencia '{c_aud_raw}' no se aburra." if is_es else
+                            f"Durağanlık var. '{c_aud_raw}' kitlesini sıkmamak için kurguyu biraz sıkılaştırabilirsin."))
             elif retention_score < 5.0:
                 feedback = (f"{prefix}" +
-                            (f"People are clicking on your video but '{c_aud_raw}' is leaving immediately. Speed up the intro." if is_en else
-                            f"La gente hace clic en tu video pero '{c_aud_raw}' se va inmediatamente. Acelera la introducción." if is_es else
-                            f"İnsanlar videona tıklıyor ama '{c_aud_raw}' hemen çıkıyor. Girişi hızlandır."))
+                            (f"People are clicking on your video but '{c_aud_raw}' is leaving early. You could try speeding up the intro." if is_en else
+                            f"La gente hace clic en tu video pero '{c_aud_raw}' se va pronto. Podrías probar a acelerar la introducción." if is_es else
+                            f"İnsanlar videona tıklıyor ama '{c_aud_raw}' erken çıkıyor. Girişi hızlandırmayı deneyebilirsin."))
             else:
                 feedback = (f"{prefix}" +
                             (f"You've found a good balance suitable for your channel type." if is_en else
