@@ -547,11 +547,18 @@ class AnalysisEngine:
     async def save_analysis(channel_id: int, result: Dict, user_id: int = 1) -> int:
         db = await get_async_db()
         try:
-            comp_dict = result.get("competitor_data", {})
-            if isinstance(comp_dict, dict):
-                comp_dict["face_detected"] = result.get("thumb_data", {}).get("face_detected", False)
-                comp_dict["_thumb_data"] = result.get("thumb_data", {})
-                comp_dict["_viral_segments"] = result.get("viral_segments", [])
+            # This column doubles as the report's data bag: besides the rival it also
+            # carries the user's own metadata, thumbnail analysis and viral segments.
+            # It must therefore be written even when no rival was found, and
+            # 'has_competitor' tells the PDF whether to draw the comparison at all.
+            found = result.get("competitor_data")
+            comp_dict = dict(found) if isinstance(found, dict) else {}
+            comp_dict.update(result.get("user_meta") or {})
+            comp_dict["has_competitor"] = bool(found)
+            comp_dict["competitor_status"] = result.get("competitor_status", "")
+            comp_dict["face_detected"] = result.get("thumb_data", {}).get("face_detected", False)
+            comp_dict["_thumb_data"] = result.get("thumb_data", {})
+            comp_dict["_viral_segments"] = result.get("viral_segments", [])
 
             comp_str = json.dumps(comp_dict)
             peak_count = int(result.get("peaks", 0))

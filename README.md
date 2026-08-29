@@ -37,16 +37,16 @@ Content creators and digital marketers often struggle to understand *why* a vide
 
 ---
 
-## ✨ Latest Release — v6.3.0 ADVISORY TONE
+## ✨ Latest Release — v6.4.0 OPTIONAL RIVAL COMPARISON
 
 > [!IMPORTANT]
-> **v6.3.0 — Advisory Tone 🗣️**
+> **v6.4.0 — Optional Rival Comparison 🎯**
 >
-> All recommendations (analysis screen, PDF, AI coach, chat, and extension DNA badges) now read as **options the creator can take**, never as orders (`bunu yap`) and never as guaranteed outcomes (`CTR %40 artar` / `izlenme garantisi`).
+> Video analysis **always finishes**. If YouTube search cannot find a rival in the same niche, scores, coach feedback, and the PDF still save — the comparison is simply left out instead of aborting the run.
 >
-> * **Copy:** PDF, UI, and on-screen action lists use suggestion language in TR/EN/ES (`bunu deneyebilirsin`, `you could try`, `podrías probar`).
-> * **AI:** A shared tone rule is injected into Groq prompts so coach and strategy text stay specific but optional.
-> * **Extension badges:** Viral-potential labels no longer promise views; low-score labels no longer use obligation mood (`GELİŞTİRİLMELİ` → `GELİŞTİRİLEBİLİR`).
+> * **Gate:** Automatic search scores candidates (topic, format, language) and only opens VS when the match is confident. An unrelated trending video is never used as a stand-in.
+> * **Honesty:** The analysis screen and PDF explain the skip in TR/EN/ES; a pasted rival URL still counts as a deliberate choice.
+> * **History:** Saved analyses reopen without treating the report data bag as a rival when none was attached.
 >
 > Older notes live in the [Changelog](CHANGELOG.md).
 ---

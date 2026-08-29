@@ -2,6 +2,24 @@
 
 All notable changes to **YouTube Analyse Pro SaaS Edition** will be documented in this file.
 
+## [v6.4.0] - Optional Rival Comparison
+
+A finished video analysis is no longer thrown away because YouTube search could not supply a fair rival. Comparison appears only when a candidate is actually comparable.
+
+### 🛡️ Analysis always completes
+- **Rival lookup is optional:** `/analyze` no longer fails with "no rival found". Scores, coach text, and the PDF are saved either way; `competitor_data` is `null` plus a `competitor_status` (`ok`, `manual`, `no_confident_match`, `lookup_failed`, `manual_url_failed`).
+- **Screen & PDF:** When there is no confident match, the VS card and the head-to-head PDF block are replaced with a short note (TR/EN/ES). The creator's SEO check-up, thumbnail emotion table, and viral segments still render.
+- **History:** Reopening a saved analysis no longer treats the stored data bag as a rival when none was found.
+
+### 🎯 Comparable rivals only
+- Candidates are **scored** (topic overlap, format/duration, language, popularity as a tie-break) instead of taking the first shared keyword.
+- A **minimum score** must be cleared; an off-niche trending video is never forced into VS.
+- Search queries are **deterministic** (niche first, then distinctive title words). A broader second search runs only if the first pass finds nothing above the threshold.
+- Shorts analyses prefer short rivals; long-form analyses prefer similar length. A paste-in URL still bypasses the niche gate (the creator chose it).
+
+### ✅ Tests
+- `tests/test_optional_competitor.py` covers lookup statuses, scoring, persistence, PDF skip of head-to-head only, and the history UI contract.
+
 ## [v6.3.0] - Advisory Tone
 
 Every recommendation shown to the creator — analysis screen, PDF report, AI coach, chat, Chrome extension badges, and prefilled coach questions — is now phrased as a suggestion, never as an order and never as a promised result.

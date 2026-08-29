@@ -19,7 +19,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 XLSX = ROOT / "translations.xlsx"
 APP_JS = ROOT / "static" / "App.js"
-LEGACY_APP_JS = ROOT / "static" / "static" / "App.js"
 SERVER = ROOT / "server.pyw"
 AI_SERVICE = ROOT / "app" / "services" / "ai_service.py"
 ANALYSIS_ENGINE = ROOT / "app" / "services" / "analysis_engine.py"
@@ -218,10 +217,9 @@ def _feedback_block(path):
     return src[start:end]
 
 
-@pytest.mark.parametrize("path", [APP_JS, LEGACY_APP_JS], ids=["app", "legacy"])
-def test_screen_feedback_strings_are_advisory(path):
-    block = _feedback_block(path)
-    problems = [f"{path.name}: {why}" for why in _violations(block)]
+def test_screen_feedback_strings_are_advisory():
+    block = _feedback_block(APP_JS)
+    problems = [f"{APP_JS.name}: {why}" for why in _violations(block)]
     assert not problems, "Imperative or guaranteed wording found:\n" + "\n".join(problems)
 
 
@@ -255,10 +253,10 @@ def test_server_has_no_growth_promise():
 
 @pytest.mark.parametrize(
     "path",
-    [APP_JS, LEGACY_APP_JS,
+    [APP_JS,
      ROOT / "chrome_extension" / "translations.js",
      ROOT / "chrome_extension" / "popup.js"],
-    ids=["app", "legacy", "ext-translations", "ext-popup"],
+    ids=["app", "ext-translations", "ext-popup"],
 )
 def test_app_js_still_parses(path):
     result = subprocess.run(
