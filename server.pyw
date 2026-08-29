@@ -400,7 +400,14 @@ init_db()
 # ═══════════════════════════════════════════════════════════
 # COMPETITOR ANALYSIS SERVICE (app/services/competitor.py)
 # ═══════════════════════════════════════════════════════════
-from app.services.competitor import extract_core_keywords, compute_kill_switch, CompetitorAnalyzer, check_content_consistency
+from app.services.competitor import (
+    extract_core_keywords,
+    compute_kill_switch,
+    CompetitorAnalyzer,
+    check_content_consistency,
+    COMPETITOR_FOUND_STATUSES,
+    COMPETITOR_LOOKUP_FAILED,
+)
 
 
 def cleanup_temp_videos():
@@ -1265,14 +1272,34 @@ async def analyze_video(
             AnalysisEngine.analyze_scene_changes, v_path, c_type)
 
         # --- NON-BLOCKING: Competitor analysis (network I/O) ---
-        competitor_data = await run_in_threadpool(CompetitorAnalyzer.get_competitor, c_type, tags, competitor_url, ch_name, title)
+        # The rival is a bonus, not a prerequisite. Everything above already cost the
+        # user minutes of processing, so a failed or inconclusive lookup only drops
+        # the comparison — it never discards the analysis.
+        # Duration and format are part of "comparable": a 40-second clip is not a fair
+        # rival for a 20-minute video, and vice versa.
+        comp_lookup = await run_in_threadpool(
+            CompetitorAnalyzer.get_competitor, c_type, tags, competitor_url, ch_name, title,
+            tech.get("duration"), is_shorts)
+        competitor_status = comp_lookup.get('status', COMPETITOR_LOOKUP_FAILED)
+        competitor_data = comp_lookup.get('competitor')
+        if competitor_status not in COMPETITOR_FOUND_STATUSES or not competitor_data:
+            competitor_data = None
+            app_logger.info(
+                f"Rakip kıyası atlandı (status={competitor_status}): {comp_lookup.get('detail', '')}")
+
+        # The user's own metadata travels in the same blob: the PDF reads tags,
+        # description, thumbnail data and viral segments back out of it, so it has to
+        # be stored whether or not a rival was found.
+        user_hashtags = [h.lower() for h in re.findall(r'#(\w+)', str(description))]
+        user_hashtags = list(dict.fromkeys([h for h in user_hashtags if h]))
+        user_meta = {
+            'user_title_len': len(title),
+            'user_tags': [t.strip() for t in tags.split(',') if t.strip()],
+            'user_hashtags': user_hashtags,
+            'user_description': description,
+        }
         if competitor_data:
-            competitor_data['user_title_len'] = len(title)
-            competitor_data['user_tags'] = [t.strip() for t in tags.split(',') if t.strip()]
-            user_hashtags = [h.lower() for h in re.findall(r'#(\w+)', str(description))]
-            user_hashtags = list(dict.fromkeys([h for h in user_hashtags if h]))
-            competitor_data['user_hashtags'] = user_hashtags
-            competitor_data['user_description'] = description
+            competitor_data.update(user_meta)
 
         kill_switch_active = False
         if competitor_data:
@@ -1397,7 +1424,10 @@ async def analyze_video(
             "dynamic_feedback_tr": dynamic_feedback_tr,
             "dynamic_feedback_en": dynamic_feedback_en,
             "dynamic_feedback_es": dynamic_feedback_es,
-            "competitor_data": competitor_data, "industry_std": AnalysisEngine.get_industry_standard(c_type),
+            "competitor_data": competitor_data,
+            "competitor_status": competitor_status,
+            "user_meta": user_meta,
+            "industry_std": AnalysisEngine.get_industry_standard(c_type),
             "viral_segments": AnalysisEngine.find_viral_segments(
                 tech, visual_tempo=v_tempo, scene_changes=scene_changes),
             "scene_changes": scene_changes,
@@ -1757,6 +1787,8 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
             comp_channel_upper = esc(raw_channel.upper())
             comp_title = esc(raw_title)
             is_fake_data = comp.get('is_fake', False)
+            # Rows written before the rival became optional have no flag but do have a rival.
+            has_competitor = comp.get('has_competitor', True)
 
             if is_fake_data:
                 elements.append(Paragraph(L['competitor_disabled'], heading_s))
@@ -1907,6 +1939,15 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
             elements.append(Paragraph(checkup_txt, normal_s))
             elements.append(Spacer(1, 0.4 * inch))
 
+            # The SEO check-up above is about the user's own video, so it runs either
+            # way. Only the head-to-head part needs an actual rival.
+            if not has_competitor:
+                elements.append(Paragraph(L['competitor_disabled'], heading_s))
+                elements.append(Paragraph(
+                    f"<font color='#d97706'>{L['no_competitor_desc']}</font>", normal_s))
+                elements.append(Spacer(1, 0.3 * inch))
+                raise ValueError("NO_COMPETITOR_SKIP")
+
             is_mismatch_detected = compute_kill_switch(video_name_str, raw_title)
             comp_txt = ""
 
@@ -2027,7 +2068,7 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
             elements.append(Spacer(1, 0.4 * inch))
 
         except ValueError as ve:
-            if "FAKE_DATA_SKIP" not in str(ve):
+            if not any(sentinel in str(ve) for sentinel in ("FAKE_DATA_SKIP", "NO_COMPETITOR_SKIP")):
                 traceback.print_exc()
         except Exception as e:
             traceback.print_exc()

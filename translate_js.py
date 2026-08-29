@@ -42,7 +42,6 @@ files = [
     'chrome_extension/content.js',
     'chrome_extension/popup.js',
     'static/App.js',
-    'static/static/App.js'
 ]
 
 for file in files:

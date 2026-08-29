@@ -732,9 +732,14 @@ async function inspectAnalysis(id) {
         const data = await res.json();
         if (data.error) { alert('Analiz yüklenemedi: ' + data.error); return; }
 
-        // Convert API response to the format renderResultScreen expects
-        let compData = null;
-        try { compData = data.competitor_data ? JSON.parse(data.competitor_data) : null; } catch(e) {}
+        // Convert API response to the format renderResultScreen expects.
+        // The stored blob is a data bag: besides the rival it carries the thumbnail
+        // analysis and the viral segments, so it is present even when no rival was
+        // found. Treating it as a rival would blank the screen on comp.channel.
+        let blob = null;
+        try { blob = data.competitor_data ? JSON.parse(data.competitor_data) : null; } catch(e) {}
+        // Rows saved before the rival became optional carry no flag but do have one.
+        const hasComp = !!(blob && blob.has_competitor !== false && blob.title);
 
         state.result = {
             analysis_id:        data.analysis_id,
@@ -750,9 +755,10 @@ async function inspectAnalysis(id) {
             dynamic_feedback_tr: data.coach_feedback,
             dynamic_feedback_en: data.coach_feedback,
             dynamic_feedback_es: data.coach_feedback,
-            competitor_data:    compData,
-            viral_segments:     (compData && compData._viral_segments) || [],
-            thumb_data:         (compData && compData._thumb_data) || {},
+            competitor_data:    hasComp ? blob : null,
+            competitor_status:  (blob && blob.competitor_status) || (hasComp ? 'ok' : 'no_confident_match'),
+            viral_segments:     (blob && blob._viral_segments) || [],
+            thumb_data:         (blob && blob._thumb_data) || {},
             is_shorts_mode:     false,
             ffmpeg_available:   false,
             is_history:         true,
@@ -1635,10 +1641,7 @@ function renderResultScreen() {
 
     const comp = res.competitor_data;
     let compHTML = '';
-    if (comp) {
-        const fakeWarningHTML = comp.is_fake ? `<div style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:12px;font-size:0.9rem;">⚠️ <b style="color:#f59e0b;">${t('fakeDataWarn')}</b> ${t('fakeDataDesc')}</div>` : '';
-        const killSwitchHTML = res.kill_switch_active ? `<div style="background:rgba(239,68,68,0.15);border:2px solid #ef4444;padding:14px 18px;border-radius:10px;margin-top:12px;"><strong style="color:#ef4444;">${t('killSwitchWarn')}</strong><br><span style="color:#fca5a5;font-size:0.9rem;">${t('killSwitchDesc')}</span></div>` : `<div style="text-align:center;margin-top:12px;font-size:0.95rem;color:#e2e8f0;background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;">🎯 <em>${t('aiScanned')}</em></div>`;
-        const myVideoHTML = state.videoFile ? `
+    const myVideoHTML = state.videoFile ? `
             <div style="margin-top:16px;background:rgba(0,0,0,0.4);border:1px solid rgba(168,85,247,0.3);border-radius:10px;overflow:hidden;">
                 <div style="padding:8px 12px;font-size:0.78rem;color:#a78bfa;font-weight:bold;background:rgba(168,85,247,0.1);display:flex;align-items:center;gap:6px;">
                     🎬 ${t('you')} — ${res.title || 'Videon'}
@@ -1653,6 +1656,9 @@ function renderResultScreen() {
                 </video>
             </div>` : '';
 
+    if (comp) {
+        const killSwitchHTML = res.kill_switch_active ? `<div style="background:rgba(239,68,68,0.15);border:2px solid #ef4444;padding:14px 18px;border-radius:10px;margin-top:12px;"><strong style="color:#ef4444;">${t('killSwitchWarn')}</strong><br><span style="color:#fca5a5;font-size:0.9rem;">${t('killSwitchDesc')}</span></div>` : `<div style="text-align:center;margin-top:12px;font-size:0.95rem;color:#e2e8f0;background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;">🎯 <em>${t('aiScanned')}</em></div>`;
+
         compHTML = `
             <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:2px solid #6366f1;padding:20px;border-radius:12px;margin-top:25px;box-shadow:0 4px 15px rgba(99,102,241,0.3);">
                 <div style="text-align:center;margin-bottom:15px;">
@@ -1663,9 +1669,21 @@ function renderResultScreen() {
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div style="flex:1;text-align:center;"><div style="font-size:2.5rem;margin-bottom:5px;">😎</div><strong style="color:#a855f7;font-size:1.1rem;">${t('you')}</strong></div>
                     <div style="font-size:2.5rem;font-weight:900;color:#f59e0b;font-style:italic;">VS</div>
-                    <div style="flex:1;text-align:center;"><div style="font-size:2.5rem;margin-bottom:5px;">🥷</div><strong style="color:#ef4444;font-size:1.1rem;">${comp.channel.toUpperCase()}</strong><div style="font-size:0.8rem;color:#aaa;margin-top:3px;">🔥 ${comp.views.toLocaleString()} İzlenme</div></div>
+                    <div style="flex:1;text-align:center;"><div style="font-size:2.5rem;margin-bottom:5px;">🥷</div><strong style="color:#ef4444;font-size:1.1rem;">${(comp.channel || '').toUpperCase()}</strong><div style="font-size:0.8rem;color:#aaa;margin-top:3px;">🔥 ${(comp.views || 0).toLocaleString()} ${t('compViews')}</div></div>
                 </div>
                 ${killSwitchHTML}
+                ${myVideoHTML}
+            </div>`;
+    } else {
+        // No rival attached: say so plainly instead of inventing a comparison.
+        // The analysis itself is complete, so this is a note, not an error.
+        const noCompKey = res.competitor_status === 'manual_url_failed' ? 'compUrlFailed'
+            : res.competitor_status === 'lookup_failed' ? 'compLookupFailed'
+            : 'compNoMatch';
+        compHTML = `
+            <div style="background:rgba(30,27,75,0.6);border:1px solid rgba(99,102,241,0.45);padding:18px 20px;border-radius:12px;margin-top:25px;">
+                <div style="font-weight:bold;color:#a5b4fc;font-size:1rem;margin-bottom:6px;">🔍 ${t('compSkipped')}</div>
+                <div style="color:#cbd5e1;font-size:0.9rem;line-height:1.5;">${t(noCompKey)}</div>
                 ${myVideoHTML}
             </div>`;
     }
