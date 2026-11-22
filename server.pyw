@@ -1580,11 +1580,22 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
 
 
     def esc(txt):
+        """ReportLab Paragraph için güvenli metin üret.
+        HTML entity çakışmalarını ve emoji sorunlarını önler."""
         if txt is None:
             return ""
         s = str(txt)
+        # Önce mevcut HTML entity'leri decode et (çift-encode'u engelle)
+        import html as _html
+        try:
+            s = _html.unescape(s)
+        except Exception:
+            pass
         s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         s = s.replace('"', "").replace("'", "")
+        # ReportLab'ın paraparser'ını kıran &#xNN; referanslarını temizle
+        import re as _re
+        s = _re.sub(r'&#[xX]?[0-9a-fA-F]+;', '', s)
         return s
 
     conn = get_db()
@@ -1680,11 +1691,11 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
     sec = [0]
     def h1(text):
         sec[0] += 1
-        return Paragraph(f"{sec[0]}. {text.upper()}", heading1_s)
+        return Paragraph(esc(f"{sec[0]}. {text.upper()}"), heading1_s)
     def h2(text):
         # Capitalize first letters
         cap = ' '.join(w.capitalize() for w in text.split())
-        return Paragraph(cap, heading2_s)
+        return Paragraph(esc(cap), heading2_s)
 
     # ── Cover ──
     elements.append(Paragraph(L['report_title'], title_s))
@@ -2341,7 +2352,11 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
             normal_s
         ))
 
-    doc.build(elements)
+    try:
+        doc.build(elements)
+    except Exception as e:
+        app_logger.error(f"PDF oluşturma hatası (analysis_id={analysis_id}): {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"PDF oluşturulamadı: {str(e)}")
     safe_video_title = re.sub(r'[^\w\-]', '_', video_name_str)[:30]
     return FileResponse(pdf_path, media_type="application/pdf", filename=f"analysis_report_{safe_video_title}_{analysis_id}.pdf")
 
@@ -2352,11 +2367,22 @@ async def export_channel_pdf(channel_id: int, lang: str = "tr"):
         lang = "tr"
     L = PDF_LANG[lang]
     def esc(txt):
+        """ReportLab Paragraph için güvenli metin üret.
+        HTML entity çakışmalarını ve emoji sorunlarını önler."""
         if txt is None:
             return ""
         s = str(txt)
+        # Önce mevcut HTML entity'leri decode et (çift-encode'u engelle)
+        import html as _html
+        try:
+            s = _html.unescape(s)
+        except Exception:
+            pass
         s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         s = s.replace('"', "").replace("'", "")
+        # ReportLab'ın paraparser'ını kıran &#xNN; referanslarını temizle
+        import re as _re
+        s = _re.sub(r'&#[xX]?[0-9a-fA-F]+;', '', s)
         return s
 
     conn = get_db()
