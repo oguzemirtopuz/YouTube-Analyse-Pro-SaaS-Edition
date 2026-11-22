@@ -763,6 +763,8 @@ async function inspectAnalysis(id) {
             ffmpeg_available:   false,
             is_history:         true,
             email_sent:         false,
+            // Geçmiş analizlerde feedback_is_positive DB'de yok, skorlardan türet
+            feedback_is_positive: (data.tech_score >= 5.0 && data.retention_score >= 5.0),
             retention_data:     { score: data.retention_score, has_csv: false, worst_drop_sec: 0, drop_percent: 0, early_drop_sec: 0 },
             tech_data:          { tech_score: data.tech_score, peaks: data.peaks, peak_times: [], max_gap: 0, viral_score: data.viral_score, duration: 0 },
             visual_tempo:       [],
@@ -1485,7 +1487,14 @@ function getVideoSpecificFeedback(res) {
     const reasons = [], actions = [], positives = [];
     const langKey = `dynamic_feedback_${state.lang}`;
     const feedbackText = res[langKey] || res.dynamic_feedback;
-    if (feedbackText) reasons.push(feedbackText);
+    if (feedbackText) {
+        // Backend'den gelen sinyal: olumlu ise güçlü yönlere, olumsuz ise zayıf yönlere ekle
+        if (res.feedback_is_positive) {
+            positives.push(feedbackText);
+        } else {
+            reasons.push(feedbackText);
+        }
+    }
     if (res.golden_frame_sec > 0) actions.push(isEn ? `🎬 GOLDEN FRAME: Highest visual tempo is at second ${res.golden_frame_sec}. You could use this frame for your thumbnail.` : isEs ? `🎬 FOTOGRAMA DORADO: El tempo visual más alto está en el segundo ${res.golden_frame_sec}. Podrías usar este fotograma para tu miniatura.` : `🎬 ALTIN KARE ÖNERİSİ: En yüksek görsel tempo ${res.golden_frame_sec}. saniyede. Thumbnail için bu kareyi kullanabilirsin.`);
     if (res.seo_score >= 8.5) positives.push(isEn ? `🔍 SEO IS PERFECT (${res.seo_score}/10): Title, description and tags are flawlessly aligned.` : isEs ? `🔍 SEO PERFECTO (${res.seo_score}/10): Título, descripción y etiquetas perfectamente alineados.` : `🔍 SEO BOMBA GİBİ (${res.seo_score}/10): Başlık, açıklama ve etiketler kusursuz uyumlu.`);
     else if (res.seo_score < 5.5) { reasons.push(isEn ? `🔍 WEAK SEO (${res.seo_score}/10).` : isEs ? `🔍 SEO DÉBIL (${res.seo_score}/10).` : `🔍 SEO ZAYIF (${res.seo_score}/10).`); actions.push(isEn ? `🔍 SEO SUGGESTION: You could place your title keywords in the first 200 characters of the description.` : isEs ? `🔍 SUGERENCIA SEO: Podrías colocar las palabras clave del título en los primeros 200 caracteres de la descripción.` : `🔍 SEO ÖNERİSİ: Açıklamanın ilk 200 karakterine başlık kelimelerini yerleştirebilirsin.`); }

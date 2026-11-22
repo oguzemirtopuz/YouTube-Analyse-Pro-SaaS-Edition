@@ -104,6 +104,8 @@ class AnalysisEngine:
         if len(c_aud_raw) > 40:
             c_aud_raw = c_aud_raw[:37] + "..."
         feedback = ""
+        # Geri bildirimin olumlu mu olumsuz mu olduğunu belirle
+        is_positive = False
         is_en = (lang == "en")
         is_es = (lang == "es")
 
@@ -114,6 +116,8 @@ class AnalysisEngine:
         )
         if ai_feedback:
             feedback = ai_feedback
+            # AI feedback: skorlar iyi ise olumlu kabul et
+            is_positive = (tech_score >= 5.0 and retention_score >= 5.0)
         else:
             prefix = "📢 " + ("CHANNEL ANALYSIS" if is_en else "ANÁLISIS DE CANAL" if is_es else "KANAL ANALİZİ") + f" ({c_type_raw.upper()}): "
             if tech_score < 5.0:
@@ -127,6 +131,7 @@ class AnalysisEngine:
                             f"La gente hace clic en tu video pero '{c_aud_raw}' se va pronto. Podrías probar a acelerar la introducción." if is_es else
                             f"İnsanlar videona tıklıyor ama '{c_aud_raw}' erken çıkıyor. Girişi hızlandırmayı deneyebilirsin."))
             else:
+                is_positive = True
                 feedback = (f"{prefix}" +
                             (f"You've found a good balance suitable for your channel type." if is_en else
                             f"Has encontrado un buen equilibrio adecuado para el tipo de tu canal." if is_es else
@@ -137,7 +142,7 @@ class AnalysisEngine:
             vs = thumb_insights["visual_summary"]
             feedback += f" 📸 [{vs}]"
 
-        return feedback
+        return feedback, is_positive
 
     @staticmethod
     def analyze_visual_tempo(video_path: str, pro_mode: bool) -> List[float]:

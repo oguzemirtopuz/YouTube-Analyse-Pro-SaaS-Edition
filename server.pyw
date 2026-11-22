@@ -1394,19 +1394,19 @@ async def analyze_video(
 
         visual_insights_str = " ".join(vi_parts)
 
-        dynamic_feedback = await AnalysisEngine.generate_dynamic_feedback(
+        dynamic_feedback, feedback_is_positive = await AnalysisEngine.generate_dynamic_feedback(
             c_type, c_aud, c_purp, tech["tech_score"], retention["score"],
             tech["peaks"], lang=lang, thumb_insights=thumb_data,
             visual_insights_str=visual_insights_str)
-        dynamic_feedback_tr = await AnalysisEngine.generate_dynamic_feedback(
+        dynamic_feedback_tr, _ = await AnalysisEngine.generate_dynamic_feedback(
             c_type, c_aud, c_purp, tech["tech_score"], retention["score"],
             tech["peaks"], lang="tr", thumb_insights=thumb_data,
             visual_insights_str=visual_insights_str)
-        dynamic_feedback_en = await AnalysisEngine.generate_dynamic_feedback(
+        dynamic_feedback_en, _ = await AnalysisEngine.generate_dynamic_feedback(
             c_type, c_aud, c_purp, tech["tech_score"], retention["score"],
             tech["peaks"], lang="en", thumb_insights=thumb_data,
             visual_insights_str=visual_insights_str)
-        dynamic_feedback_es = await AnalysisEngine.generate_dynamic_feedback(
+        dynamic_feedback_es, _ = await AnalysisEngine.generate_dynamic_feedback(
             c_type, c_aud, c_purp, tech["tech_score"], retention["score"],
             tech["peaks"], lang="es", thumb_insights=thumb_data,
             visual_insights_str=visual_insights_str)
@@ -1424,6 +1424,7 @@ async def analyze_video(
             "dynamic_feedback_tr": dynamic_feedback_tr,
             "dynamic_feedback_en": dynamic_feedback_en,
             "dynamic_feedback_es": dynamic_feedback_es,
+            "feedback_is_positive": feedback_is_positive,
             "competitor_data": competitor_data,
             "competitor_status": competitor_status,
             "user_meta": user_meta,
