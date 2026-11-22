@@ -633,6 +633,7 @@ function renderSidebar() {
     `).join('');
     return `
         <aside class="sidebar">
+            <div class="sidebar-resize-handle" onmousedown="startSidebarResize(event)"></div>
             <div class="sidebar-top">
                 <div class="sidebar-brand">
                     <span>🎬</span>
@@ -655,6 +656,63 @@ function renderSidebar() {
         </aside>
     `;
 }
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR RESIZE & PERSISTENCE
+// ═══════════════════════════════════════════════════════════
+let _isResizingSidebar = false;
+
+function initSidebarResize() {
+    try {
+        const savedWidth = localStorage.getItem('yt_sidebar_width');
+        if (savedWidth) {
+            const w = parseInt(savedWidth, 10);
+            if (!isNaN(w) && w >= 180 && w <= 600) {
+                document.documentElement.style.setProperty('--sidebar-width', `${w}px`);
+            }
+        }
+    } catch (e) { }
+}
+
+function startSidebarResize(e) {
+    if (e.button !== 0) return; // Sadece sol tık
+    e.preventDefault();
+    _isResizingSidebar = true;
+    document.body.classList.add('sidebar-resizing');
+
+    const handle = e.currentTarget || e.target;
+    if (handle) handle.classList.add('active');
+
+    const onMouseMove = (moveEvent) => {
+        if (!_isResizingSidebar) return;
+        // Min 180px, max 600px genişlik
+        const newWidth = Math.min(Math.max(moveEvent.clientX, 180), 600);
+        document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
+    };
+
+    const onMouseUp = () => {
+        if (!_isResizingSidebar) return;
+        _isResizingSidebar = false;
+        document.body.classList.remove('sidebar-resizing');
+        if (handle) handle.classList.remove('active');
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+
+        // Genişliği localStorage'a kaydet
+        try {
+            const currentWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width'), 10);
+            if (!isNaN(currentWidth)) {
+                localStorage.setItem('yt_sidebar_width', currentWidth);
+            }
+        } catch (err) { }
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+}
+
+// Sayfa yüklenmeden önce de genişliği hemen uygula
+initSidebarResize();
 
 // ═══════════════════════════════════════════════════════════
 // DASHBOARD

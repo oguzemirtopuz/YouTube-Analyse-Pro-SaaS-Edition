@@ -108,25 +108,64 @@ input:focus, textarea:focus, select:focus {
     box-shadow: 0 0 10px rgba(168,85,247,0.6), inset 0 2px 4px rgba(0,0,0,0.2) !important;
 }
 
+:root {
+    --sidebar-width: 260px;
+}
+
 /* APP-SHELL */
 .app-shell { display: flex; min-height: 100vh; }
+#sidebar-container {
+    width: var(--sidebar-width, 260px);
+    flex-shrink: 0;
+}
 .main-content { flex: 1; padding: 40px 30px; overflow-y: auto; min-width: 0; }
+
+body.sidebar-resizing {
+    user-select: none !important;
+    cursor: col-resize !important;
+}
 
 /* SIDEBAR */
 .sidebar {
-    width: 260px; /* Biraz genişlettik, yazılar nefes alsın */
-    min-height: 100vh;
+    width: var(--sidebar-width, 260px);
     background: #0f081d;
     border-right: 1px solid rgba(168, 85, 247, 0.2);
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 30px 18px; /* Paddingleri artırdık */
-    position: sticky;
+    padding: 30px 18px;
+    position: fixed;
     top: 0;
+    left: 0;
     height: 100vh;
     z-index: 100;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
+
+/* Sidebar resize handle — sağ kenardan sürükleyerek genişletme */
+.sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 101;
+    transition: background 0.2s;
+}
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle.active {
+    background: rgba(168, 85, 247, 0.6);
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+/* Sidebar scrollbar stili */
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.3); border-radius: 4px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.5); }
 .sidebar-brand { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 800; color: white; padding: 6px 10px 20px; border-bottom: 1px solid rgba(168,85,247,0.2); margin-bottom: 16px; }
 .sidebar-brand-text { background: linear-gradient(135deg,#a855f7,#ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .sidebar-nav { list-style: none; display: flex; flex-direction: column; gap: 4px; }
