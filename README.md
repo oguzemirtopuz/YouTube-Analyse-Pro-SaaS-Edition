@@ -41,16 +41,17 @@ Content creators and digital marketers often struggle to understand *why* a vide
 
 ---
 
-## ✨ Latest Release — v6.4.0 OPTIONAL RIVAL COMPARISON
+## ✨ Latest Release — v6.5.0 UI ERGONOMICS, BACKGROUND PROCESSING & DESKTOP POLISH
 
 > [!IMPORTANT]
-> **v6.4.0 — Optional Rival Comparison 🎯**
+> **v6.5.0 — UI Ergonomics, Background Processing & Desktop Polish 🚀**
 >
-> Video analysis **always finishes**. If YouTube search cannot find a rival in the same niche, scores, coach feedback, and the PDF still save — the comparison is simply left out instead of aborting the run.
+> A major desktop UX evolution making creator workflows smoother, non-blocking, and completely uninterrupted.
 >
-> * **Gate:** Automatic search scores candidates (topic, format, language) and only opens VS when the match is confident. An unrelated trending video is never used as a stand-in.
-> * **Honesty:** The analysis screen and PDF explain the skip in TR/EN/ES; a pasted rival URL still counts as a deliberate choice.
-> * **History:** Saved analyses reopen without treating the report data bag as a rival when none was attached.
+> * **⚡ Background Video Analysis:** Analysis now runs fully asynchronous in the background with a floating bottom-right progress card and one-click navigation to completed results.
+> * **📐 Resizable & Persistent Sidebar:** Full-height fixed sidebar with smooth drag-to-resize handle (180px - 600px) that remembers your preferred width.
+> * **📄 Instant Desktop PDF Export:** One-click PDF export directly saved to the user's Downloads folder and opened with the default system viewer.
+> * **🎯 Smart AI Feedback & FFmpeg Polish:** Dynamic positive/negative AI feedback routing and auto-discovery of system FFmpeg binaries.
 >
 > Older notes live in the [Changelog](CHANGELOG.md).
 ---

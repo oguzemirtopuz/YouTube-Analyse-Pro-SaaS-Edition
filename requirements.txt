@@ -16,3 +16,4 @@ soundfile==0.12.1
 jinja2==3.1.2
 cryptography==42.0.0
 youtube-transcript-api==0.6.2
+setuptools<72

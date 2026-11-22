@@ -2,6 +2,32 @@
 
 All notable changes to **YouTube Analyse Pro SaaS Edition** will be documented in this file.
 
+## [v6.5.0] - UI Ergonomics, Background Processing & Desktop Polish
+
+Major UX and reliability overhaul featuring asynchronous background video analysis, customizable full-height draggable sidebar, one-click native PDF export, and smart feedback classification.
+
+### ⚡ Background Video Analysis & Floating Widget
+- **Non-blocking Workflow:** Video analyses now run entirely in the background. Users can browse the Dashboard, AI Coach, Content Finder, and Channel Settings while long-form or shorts videos are being processed.
+- **Floating Progress Widget:** Sleek bottom-right progress card with smooth gradient borders, live stage updates, percentage tracking, and an instant "Analize Git" (Go to Analysis) navigation button upon completion.
+
+### 📐 Resizable & Persistent Fixed Sidebar
+- **Full-Height Fix:** Changed `.sidebar` to `position: fixed` with independent vertical scrolling, preventing sidebar cutoffs on deeply scrolled analysis reports.
+- **Draggable Resize Handle:** Added an interactive right-edge resize handle (`.sidebar-resize-handle`) allowing creators to resize the sidebar between 180px and 600px with glowing hover feedback, matching Antigravity / IDE desktop standards.
+- **Layout Memory:** Selected sidebar width is automatically persisted in `localStorage` across restarts and navigation.
+
+### 📄 Desktop Native PDF Report Export
+- **Downloads Folder Integration:** Overcame pywebview navigation and blob download restrictions with dedicated `/api/save_and_open_pdf/{id}` and `/api/save_and_open_channel_pdf/{id}` endpoints that automatically save reports to the OS `Downloads` folder and open them instantly via native shell (`os.startfile`).
+- **Sanitization & Double-Click Shield:** Hardened ReportLab typography rendering against HTML entity collisions and added an asynchronous `_pdfExporting` lock to prevent accidental duplicate downloads.
+
+### 🎯 Smart AI Feedback & Visual Clean-up
+- **Dynamic Strengths vs. Weaknesses Routing:** Channel feedback sentences ("Kanalının türüne uygun bir denge yakalamışsın") now route into "Güçlü Yönler" (Strengths) whenever performance scores are favorable (tech & retention >= 5.0) instead of being grouped under weaknesses.
+- **Placeholder Elimination:** Removed the repetitive "(Yüz bulunamadı; ya direkt yok ya da çok küçük)" placeholder text from visual analysis summaries.
+
+### 🛠️ Hardware & Dependency Stability
+- **FFmpeg Auto-Discovery:** Implemented `ensure_ffmpeg_in_path()` in `server.pyw` to automatically locate and bind FFmpeg binaries from system paths (`C:\ffmpeg\bin`, WinGet, Program Files).
+- **History Clip Trimming Fix:** Corrected hardcoded `ffmpeg_available: false` flags in historical analysis views (`loadHistoryAnalysis`), enabling seamless clip extraction on loaded analyses.
+- **Librosa Compatibility:** Pinned `setuptools<72` to resolve `pkg_resources` deprecation issues in audio analysis modules.
+
 ## [v6.4.0] - Optional Rival Comparison
 
 A finished video analysis is no longer thrown away because YouTube search could not supply a fair rival. Comparison appears only when a candidate is actually comparable.
