@@ -531,13 +531,11 @@ class AnalysisEngine:
                          contrast_10 * 0.25 + text_space_10 * 0.20 +
                          vibrant_10 * 0.25)
             result["score"] = round(max(0.0, min(10.0, total)), 1)
-            if not result["face_detected"]:
-                result["visual_summary"] = "(Yüz bulunamadı; ya direkt yok ya da çok küçük)"
-            else:
-                result["visual_summary"] = (
-                    " ve ".join(summary_parts) if summary_parts
-                    else "Thumbnail analizi tamamlandı"
-                )
+            # Yüz bulunsun veya bulunmasın, varsa özetleri birleştir
+            result["visual_summary"] = (
+                " ve ".join(summary_parts) if summary_parts
+                else "Thumbnail analizi tamamlandı"
+            )
         except Exception as e:
             print(f"Thumbnail analiz hatası: {e}")
             traceback.print_exc()
