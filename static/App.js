@@ -17,6 +17,7 @@ const state = {
     groqKey: '',
     geminiKey: '',
     lang: localStorage.getItem('ytlang') || 'tr',
+    ffmpegAvailable: true,
     // Arka plan analiz durumu
     bgAnalysis: null  // { title, progress, currentStep, xhr, processingInterval, done, result }
 };
@@ -820,7 +821,7 @@ async function inspectAnalysis(id) {
             viral_segments:     (blob && blob._viral_segments) || [],
             thumb_data:         (blob && blob._thumb_data) || {},
             is_shorts_mode:     false,
-            ffmpeg_available:   false,
+            ffmpeg_available:   (state.ffmpegAvailable !== false),
             is_history:         true,
             email_sent:         false,
             // Geçmiş analizlerde feedback_is_positive DB'de yok, skorlardan türet
@@ -834,7 +835,7 @@ async function inspectAnalysis(id) {
             critical_warning:   '',
             kill_switch_active: false,
             scene_changes:      {},
-            ffmpeg_available:   false,
+            ffmpeg_available:   (state.ffmpegAvailable !== false),
         };
 
         state.currentView = 'analyze';
@@ -2418,7 +2419,10 @@ async function createShortFromMoment(segmentIndex, btn) {
     const duration = Math.round((endVal - startVal) * 10) / 10;
     if (isNaN(startVal) || isNaN(endVal) || endVal <= startVal) { alert(t('error')); return; }
     const tempFilename = state.tempVideoName;
-    if (!tempFilename && !state.videoFile) { alert(t('error')); return; }
+    if (!tempFilename && !state.videoFile) {
+        alert("Klip kesebilmek için lütfen 'Analiz Et' sekmesinden videonuzu seçin veya yeni bir analiz başlatın.");
+        return;
+    }
     const originalText = btn.textContent;
     btn.textContent = t('wait'); btn.disabled = true;
 
@@ -2757,6 +2761,14 @@ function renderChatbot() {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎬 YouTube Analiz Pro V4.0 — SaaS Edition başlatıldı');
     await loadTranslations();
+
+    try {
+        const healthRes = await fetch(`${API_URL}/health`);
+        const healthData = await healthRes.json();
+        if (healthData && typeof healthData.ffmpeg_available === 'boolean') {
+            state.ffmpegAvailable = healthData.ffmpeg_available;
+        }
+    } catch (e) { }
 
     try {
         const sessRes = await fetch(`${API_URL}/api/session`);

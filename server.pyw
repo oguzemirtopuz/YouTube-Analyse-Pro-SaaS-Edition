@@ -245,6 +245,34 @@ INDUSTRY_STANDARDS = {
 FFMPEG_AVAILABLE = False
 
 
+def ensure_ffmpeg_in_path():
+    """Sistemde veya yaygın dizinlerde ffmpeg arar, bulursa PATH ortam değişkenine ekler."""
+    import shutil
+    if shutil.which("ffmpeg"):
+        return True
+    common_dirs = [
+        r"C:\ffmpeg\bin",
+        r"C:\ffmpeg",
+        r"C:\Program Files\ffmpeg\bin",
+        r"C:\Program Files (x86)\ffmpeg\bin",
+        os.path.expanduser(r"~\AppData\Local\Microsoft\WinGet\Packages"),
+        r"D:\ffmpeg\bin",
+    ]
+    for d in common_dirs:
+        if os.path.isdir(d):
+            if os.path.exists(os.path.join(d, "ffmpeg.exe")):
+                os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
+                return True
+            for root, dirs, files in os.walk(d):
+                if "ffmpeg.exe" in files:
+                    os.environ["PATH"] = root + os.pathsep + os.environ.get("PATH", "")
+                    return True
+    return False
+
+
+ensure_ffmpeg_in_path()
+
+
 def run_cmd(cmd_list, timeout=None):
     kwargs = {'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL}
     if os.name == 'nt':
