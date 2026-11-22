@@ -1318,10 +1318,10 @@ function startEditChannel(id) {
     if (ch) { state.editingChannel = ch; state.isCreatingChannel = true; render(); }
 }
 
-// ── PDF EXPORT — pywebview uyumlu blob indirme ──
+// ── PDF EXPORT — masaüstü uygulaması için doğrudan kaydet ve aç ──
 let _pdfExporting = false;
 async function exportPDF() {
-    if (_pdfExporting) return; // Spam koruması
+    if (_pdfExporting) return;
     if (!state.result || !state.result.analysis_id) return alert(t('error'));
 
     _pdfExporting = true;
@@ -1334,45 +1334,30 @@ async function exportPDF() {
     }
 
     try {
-        const url = `${API_URL}/export_pdf/${state.result.analysis_id}?lang=${state.lang}`;
+        const url = `${API_URL}/api/save_and_open_pdf/${state.result.analysis_id}?lang=${state.lang}`;
         const response = await fetch(url);
+        const data = await response.json();
 
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(errText || response.statusText);
+        if (data.success) {
+            if (btn) {
+                btn.innerHTML = '✅ PDF indirildi!';
+                btn.style.opacity = '1';
+            }
+            // Dosya yolunu bildirim olarak göster
+            const pathMsg = state.lang === 'en' ? 'PDF saved to: ' :
+                            state.lang === 'es' ? 'PDF guardado en: ' :
+                            'PDF kaydedildi: ';
+            console.log(pathMsg + data.path);
+        } else {
+            throw new Error(data.error || 'Bilinmeyen hata');
         }
 
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-
-        // Dosya adını response header'dan al veya varsayılan kullan
-        const disposition = response.headers.get('content-disposition') || '';
-        const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
-        const filename = filenameMatch ? filenameMatch[1] : `rapor_${state.result.analysis_id}.pdf`;
-
-        // Gizli <a> elementi ile indirmeyi tetikle
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-
-        // Başarılı mesajı göster
-        if (btn) {
-            btn.innerHTML = '✅ PDF indirildi!';
-            btn.style.opacity = '1';
-        }
-
-        // Temizlik
-        setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove(); }, 1000);
-
-        // Butonu 2 saniye sonra eski haline döndür
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 2500));
     } catch (err) {
-        console.error('PDF indirme hatası:', err);
-        alert(state.lang === 'en' ? 'PDF download failed: ' + err.message :
-              state.lang === 'es' ? 'Error al descargar PDF: ' + err.message :
-              'PDF indirme başarısız: ' + err.message);
+        console.error('PDF hatası:', err);
+        alert(state.lang === 'en' ? 'PDF failed: ' + err.message :
+              state.lang === 'es' ? 'Error PDF: ' + err.message :
+              'PDF başarısız: ' + err.message);
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = oldText; btn.style.opacity = '1'; }
         _pdfExporting = false;
@@ -1419,22 +1404,11 @@ async function resendReportMail(analysisId) {
 
 async function exportChannelPDF(id) {
     try {
-        const url = `${API_URL}/export_channel_pdf/${id}?lang=${state.lang}`;
+        const url = `${API_URL}/api/save_and_open_channel_pdf/${id}?lang=${state.lang}`;
         const response = await fetch(url);
-        if (!response.ok) throw new Error(await response.text() || response.statusText);
-
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const disposition = response.headers.get('content-disposition') || '';
-        const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
-        const filename = filenameMatch ? filenameMatch[1] : `kanal_raporu_${id}.pdf`;
-
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove(); }, 1000);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Bilinmeyen hata');
+        console.log('Kanal PDF kaydedildi:', data.path);
     } catch (err) {
         console.error('Kanal PDF hatası:', err);
         alert('PDF indirme başarısız: ' + err.message);

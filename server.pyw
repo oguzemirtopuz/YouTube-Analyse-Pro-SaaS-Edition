@@ -2362,6 +2362,58 @@ async def export_pdf(analysis_id: int, lang: str = "tr"):
     return FileResponse(pdf_path, media_type="application/pdf", filename=f"analysis_report_{safe_video_title}_{analysis_id}.pdf")
 
 
+@app.get("/api/save_and_open_pdf/{analysis_id}")
+async def save_and_open_pdf(analysis_id: int, lang: str = "tr"):
+    """PDF'i oluştur, İndirilenler klasörüne kaydet ve sistem uygulamasıyla aç."""
+    import shutil
+
+    # Önce PDF'in oluşturulmuş olduğundan emin ol
+    if lang not in PDF_LANG or not PDF_LANG[lang]:
+        lang = "tr"
+
+    pdf_src = output_dir / f"report_{analysis_id}_{lang}.pdf"
+
+    # PDF henüz oluşturulmamışsa, export_pdf endpoint'ini çağırarak oluştur
+    if not pdf_src.exists():
+        try:
+            await export_pdf(analysis_id, lang)
+        except Exception as e:
+            return {"success": False, "error": f"PDF oluşturulamadı: {str(e)}"}
+
+    if not pdf_src.exists():
+        return {"success": False, "error": "PDF dosyası bulunamadı."}
+
+    # Hedef: kullanıcının İndirilenler klasörü
+    downloads_dir = Path.home() / "Downloads"
+    if not downloads_dir.exists():
+        downloads_dir = Path.home() / "Desktop"  # Fallback: Masaüstü
+
+    # Dosya adını belirle
+    conn_tmp = get_db()
+    conn_tmp.row_factory = sqlite3.Row
+    c_tmp = conn_tmp.cursor()
+    c_tmp.execute("SELECT video_name FROM analyses WHERE id = ?", (analysis_id,))
+    row_tmp = c_tmp.fetchone()
+    conn_tmp.close()
+    video_name = row_tmp['video_name'] if row_tmp else "video"
+    safe_name = re.sub(r'[^\w\-]', '_', str(video_name))[:30]
+    dest_filename = f"Analiz_Raporu_{safe_name}_{analysis_id}.pdf"
+    dest_path = downloads_dir / dest_filename
+
+    try:
+        shutil.copy2(str(pdf_src), str(dest_path))
+    except Exception as e:
+        return {"success": False, "error": f"Dosya kopyalanamadı: {str(e)}"}
+
+    # Dosyayı varsayılan PDF uygulamasıyla aç
+    try:
+        os.startfile(str(dest_path))
+    except Exception:
+        pass  # Açılamazsa da sorun değil, dosya kaydedildi
+
+    return {"success": True, "path": str(dest_path)}
+
+
 @app.get("/export_channel_pdf/{channel_id}")
 async def export_channel_pdf(channel_id: int, lang: str = "tr"):
     if lang not in PDF_LANG or not PDF_LANG[lang]:
@@ -2446,6 +2498,49 @@ async def export_channel_pdf(channel_id: int, lang: str = "tr"):
     doc.build(elements)
     safe_name = re.sub(r'[^\w\-]', '_', str(channel[1]))[:30]
     return FileResponse(pdf_path, media_type="application/pdf", filename=f"channel_report_{safe_name}_{channel_id}.pdf")
+
+
+@app.get("/api/save_and_open_channel_pdf/{channel_id}")
+async def save_and_open_channel_pdf(channel_id: int, lang: str = "tr"):
+    """Kanal PDF'ini oluştur, İndirilenler klasörüne kaydet ve sistem varsayılan uygulamasıyla aç."""
+    import shutil
+    if lang not in PDF_LANG or not PDF_LANG[lang]:
+        lang = "tr"
+
+    pdf_src = output_dir / f"kanal_raporu_{channel_id}_{lang}.pdf"
+    if not pdf_src.exists():
+        try:
+            await export_channel_pdf(channel_id, lang)
+        except Exception as e:
+            return {"success": False, "error": f"Kanal PDF oluşturulamadı: {str(e)}"}
+
+    if not pdf_src.exists():
+        return {"success": False, "error": "Kanal PDF dosyası bulunamadı."}
+
+    downloads_dir = Path.home() / "Downloads"
+    if not downloads_dir.exists():
+        downloads_dir = Path.home() / "Desktop"
+
+    conn_tmp = get_db()
+    c_tmp = conn_tmp.cursor()
+    c_tmp.execute("SELECT name FROM channels WHERE id = ?", (channel_id,))
+    row_tmp = c_tmp.fetchone()
+    conn_tmp.close()
+    ch_name = row_tmp[0] if row_tmp else "kanal"
+    safe_ch_name = re.sub(r'[^\w\-]', '_', str(ch_name))[:30]
+    dest_path = downloads_dir / f"Kanal_Raporu_{safe_ch_name}_{channel_id}.pdf"
+
+    try:
+        shutil.copy2(str(pdf_src), str(dest_path))
+    except Exception as e:
+        return {"success": False, "error": f"Dosya kopyalanamadı: {str(e)}"}
+
+    try:
+        os.startfile(str(dest_path))
+    except Exception:
+        pass
+
+    return {"success": True, "path": str(dest_path)}
 
 
 @app.get("/api/session")
