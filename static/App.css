@@ -436,3 +436,147 @@ input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.35); }
     color: #94a3b8;
     font-weight: 500;
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   ARKA PLAN ANALİZ WIDGET'I (Floating Progress Card)
+   ═══════════════════════════════════════════════════════════ */
+#bgAnalysisWidget {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    background: rgba(15, 8, 29, 0.95);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    border-radius: 16px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(107, 33, 168, 0.3), 0 0 0 1px rgba(168, 85, 247, 0.15);
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    animation: bgWidgetSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+@keyframes bgWidgetSlideIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.bg-widget-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bg-widget-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.bg-widget-spinner {
+    display: inline-block;
+    animation: bgWidgetSpin 1.2s linear infinite;
+}
+
+@keyframes bgWidgetSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.bg-widget-title {
+    flex: 1;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bg-widget-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.bg-widget-close:hover {
+    background: rgba(168, 85, 247, 0.2);
+    color: white;
+}
+
+.bg-widget-bar-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.bg-widget-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #7c3aed, #ec4899);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.bg-widget-status {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bg-widget-status.bg-widget-error {
+    color: #f87171;
+}
+
+.bg-widget-goto {
+    width: 100%;
+    padding: 8px 0;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6b21a8, #9333ea);
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    font-family: inherit;
+}
+
+.bg-widget-goto:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(147, 51, 234, 0.4);
+}
+
+.bg-widget-goto:active {
+    transform: scale(0.98);
+}
+
+/* Analiz tamamlandığında dikkat çekici animasyon */
+#bgAnalysisWidget.bg-widget-done {
+    border-color: rgba(34, 197, 94, 0.5);
+    box-shadow: 0 8px 32px rgba(34, 197, 94, 0.25), 0 0 0 1px rgba(34, 197, 94, 0.2);
+    animation: bgWidgetPulse 2s ease-in-out infinite;
+}
+
+@keyframes bgWidgetPulse {
+    0%, 100% { box-shadow: 0 8px 32px rgba(34, 197, 94, 0.25), 0 0 0 1px rgba(34, 197, 94, 0.2); }
+    50% { box-shadow: 0 8px 40px rgba(34, 197, 94, 0.4), 0 0 0 2px rgba(34, 197, 94, 0.35); }
+}
+
+/* Hata durumunda kırmızı kenarlık */
+#bgAnalysisWidget.bg-widget-err {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.2), 0 0 0 1px rgba(239, 68, 68, 0.2);
+}

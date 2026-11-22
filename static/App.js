@@ -16,7 +16,9 @@ const state = {
     dashboardData: null,
     groqKey: '',
     geminiKey: '',
-    lang: localStorage.getItem('ytlang') || 'tr'
+    lang: localStorage.getItem('ytlang') || 'tr',
+    // Arka plan analiz durumu
+    bgAnalysis: null  // { title, progress, currentStep, xhr, processingInterval, done, result }
 };
 
 
@@ -2006,6 +2008,7 @@ async function startAnalysis() {
     if (!videoInput?.files?.[0]) { alert(t('selectVidWarn')); return; }
 
     state.videoFile = videoInput.files[0];
+    const videoTitle = document.getElementById('title')?.value || state.videoFile.name;
 
     const formData = new FormData();
     formData.append('video_file', videoInput.files[0]);
@@ -2024,48 +2027,180 @@ async function startAnalysis() {
     console.log('Gönderilen lang:', state.lang);
     console.log('lang gönderiliyor:', state.lang);
 
-    state.loading = true;
-    state.progress = 0;
+    // Arka plan analiz objesi oluştur
+    state.bgAnalysis = {
+        title: videoTitle,
+        progress: 0,
+        currentStep: 0,
+        done: false,
+        result: null,
+        xhr: null,
+        processingInterval: null
+    };
+
+    // Kullanıcıyı serbest bırak, loading ekranı gösterme
+    state.loading = false;
+    state.result = null;
     render();
+    renderBgAnalysisWidget();
 
     const xhr = new XMLHttpRequest();
-    let processingInterval = null;
+    state.bgAnalysis.xhr = xhr;
 
     xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) { state.progress = (e.loaded / e.total) * 50; updateUIProgress(); }
+        if (e.lengthComputable && state.bgAnalysis) {
+            state.bgAnalysis.progress = (e.loaded / e.total) * 50;
+            renderBgAnalysisWidget();
+        }
     };
 
     xhr.upload.onload = () => {
-        if (processingInterval) clearInterval(processingInterval);
-        processingInterval = setInterval(() => {
-            if (!state.loading || state.progress >= 99) { clearInterval(processingInterval); return; }
-            state.progress += 0.2;
-            updateUIProgress();
+        if (state.bgAnalysis?.processingInterval) clearInterval(state.bgAnalysis.processingInterval);
+        state.bgAnalysis.processingInterval = setInterval(() => {
+            if (!state.bgAnalysis || state.bgAnalysis.done || state.bgAnalysis.progress >= 99) {
+                if (state.bgAnalysis?.processingInterval) clearInterval(state.bgAnalysis.processingInterval);
+                return;
+            }
+            state.bgAnalysis.progress += 0.2;
+            state.bgAnalysis.currentStep = Math.min(
+                getAnalysisSteps().length - 2,
+                Math.floor((state.bgAnalysis.progress / 100) * getAnalysisSteps().length)
+            );
+            renderBgAnalysisWidget();
         }, 400);
     };
 
     xhr.onload = function () {
-        if (processingInterval) clearInterval(processingInterval);
+        if (state.bgAnalysis?.processingInterval) clearInterval(state.bgAnalysis.processingInterval);
         if (xhr.status === 200) {
             const result = JSON.parse(xhr.responseText);
-            state.result = result;
+            if (state.bgAnalysis) {
+                state.bgAnalysis.done = true;
+                state.bgAnalysis.result = result;
+                state.bgAnalysis.progress = 100;
+            }
             state.tempVideoName = result.temp_video_name;
-            state.progress = 100;
-            updateUIProgress();
-            setTimeout(() => { state.loading = false; render(); playAnalysisCompleteSound(); }, 600);
+            renderBgAnalysisWidget();
+            playAnalysisCompleteSound();
         } else {
-            alert("Hata: " + xhr.statusText);
-            state.loading = false; render();
+            if (state.bgAnalysis) {
+                state.bgAnalysis.done = true;
+                state.bgAnalysis.error = true;
+            }
+            renderBgAnalysisWidget();
         }
     };
 
     xhr.onerror = () => {
-        if (processingInterval) clearInterval(processingInterval);
-        alert(t('connErr')); state.loading = false; render();
+        if (state.bgAnalysis?.processingInterval) clearInterval(state.bgAnalysis.processingInterval);
+        if (state.bgAnalysis) {
+            state.bgAnalysis.done = true;
+            state.bgAnalysis.error = true;
+        }
+        renderBgAnalysisWidget();
     };
 
     xhr.open('POST', `${API_URL}/analyze`, true);
     xhr.send(formData);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ARKA PLAN ANALİZ WIDGET'I (Floating Progress Card)
+// ═══════════════════════════════════════════════════════════
+function renderBgAnalysisWidget() {
+    let widget = document.getElementById('bgAnalysisWidget');
+
+    // Widget yoksa oluştur
+    if (!widget) {
+        widget = document.createElement('div');
+        widget.id = 'bgAnalysisWidget';
+        document.body.appendChild(widget);
+    }
+
+    const bg = state.bgAnalysis;
+    if (!bg) {
+        widget.remove();
+        return;
+    }
+
+    // Durum class'larını ayarla
+    widget.className = '';
+    if (bg.done && bg.result) widget.classList.add('bg-widget-done');
+    if (bg.done && bg.error) widget.classList.add('bg-widget-err');
+
+    // Başlığı kısalt (çok uzunsa)
+    const shortTitle = bg.title.length > 35 ? bg.title.substring(0, 32) + '...' : bg.title;
+    const pct = Math.round(bg.progress);
+
+    if (bg.done && bg.error) {
+        // Hata durumu
+        widget.innerHTML = `
+            <div class="bg-widget-header">
+                <span class="bg-widget-icon">❌</span>
+                <span class="bg-widget-title">${shortTitle}</span>
+                <button class="bg-widget-close" onclick="closeBgWidget()">✕</button>
+            </div>
+            <div class="bg-widget-status bg-widget-error">${t('connErr')}</div>
+        `;
+    } else if (bg.done && bg.result) {
+        // Tamamlandı durumu
+        widget.innerHTML = `
+            <div class="bg-widget-header">
+                <span class="bg-widget-icon">✅</span>
+                <span class="bg-widget-title">${shortTitle}</span>
+                <button class="bg-widget-close" onclick="closeBgWidget()">✕</button>
+            </div>
+            <div class="bg-widget-bar-container">
+                <div class="bg-widget-bar" style="width:100%"></div>
+            </div>
+            <div class="bg-widget-status">%100 ${t('completedPerc')}</div>
+            <button class="bg-widget-goto" onclick="goToAnalysisResult()">
+                📊 ${state.lang === 'en' ? 'Go to Analysis' : state.lang === 'es' ? 'Ir al Análisis' : 'Analize Git'}
+            </button>
+        `;
+    } else {
+        // Devam ediyor durumu
+        const stepText = getAnalysisSteps()[bg.currentStep]?.text || '';
+        widget.innerHTML = `
+            <div class="bg-widget-header">
+                <span class="bg-widget-icon bg-widget-spinner">◌</span>
+                <span class="bg-widget-title">${shortTitle}</span>
+                <button class="bg-widget-close" onclick="closeBgWidget()" title="${state.lang === 'en' ? 'Minimize' : 'Küçült'}">─</button>
+            </div>
+            <div class="bg-widget-bar-container">
+                <div class="bg-widget-bar" style="width:${pct}%"></div>
+            </div>
+            <div class="bg-widget-status">%${pct} — ${stepText}</div>
+        `;
+    }
+
+    widget.style.display = 'flex';
+}
+
+function goToAnalysisResult() {
+    if (state.bgAnalysis?.result) {
+        state.result = state.bgAnalysis.result;
+        state.bgAnalysis = null;
+        state.currentView = 'analyze';
+        state.loading = false;
+
+        // Widget'ı kaldır
+        const widget = document.getElementById('bgAnalysisWidget');
+        if (widget) widget.remove();
+
+        render();
+    }
+}
+
+function closeBgWidget() {
+    const widget = document.getElementById('bgAnalysisWidget');
+    if (widget) {
+        // Analiz bittiyse veya hata olduysa state'i temizle
+        if (state.bgAnalysis?.done) {
+            // Widget'ı gizle ama tamamlandıysa sonucu sakla — kullanıcı isterse sidebar'dan erişir
+        }
+        widget.style.display = 'none';
+    }
 }
 
 function updateUIProgress() {
