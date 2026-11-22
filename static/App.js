@@ -1318,10 +1318,48 @@ function startEditChannel(id) {
     if (ch) { state.editingChannel = ch; state.isCreatingChannel = true; render(); }
 }
 
-// ── PDF EXPORT — with lang parameters (UPDATED) ──
-function exportPDF() {
+// ── PDF EXPORT — pywebview uyumlu blob indirme ──
+async function exportPDF() {
     if (!state.result || !state.result.analysis_id) return alert(t('error'));
-    window.location.href = `${API_URL}/export_pdf/${state.result.analysis_id}?lang=${state.lang}`;
+
+    const btn = document.querySelector('[onclick="exportPDF()"]');
+    const oldText = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ PDF oluşturuluyor...'; }
+
+    try {
+        const url = `${API_URL}/export_pdf/${state.result.analysis_id}?lang=${state.lang}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || response.statusText);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Dosya adını response header'dan al veya varsayılan kullan
+        const disposition = response.headers.get('content-disposition') || '';
+        const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
+        const filename = filenameMatch ? filenameMatch[1] : `rapor_${state.result.analysis_id}.pdf`;
+
+        // Gizli <a> elementi ile indirmeyi tetikle
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+
+        // Temizlik
+        setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove(); }, 1000);
+    } catch (err) {
+        console.error('PDF indirme hatası:', err);
+        alert(state.lang === 'en' ? 'PDF download failed: ' + err.message :
+              state.lang === 'es' ? 'Error al descargar PDF: ' + err.message :
+              'PDF indirme başarısız: ' + err.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = oldText; }
+    }
 }
 
 async function resendReportMail(analysisId) {
@@ -1362,8 +1400,28 @@ async function resendReportMail(analysisId) {
     }
 }
 
-function exportChannelPDF(id) {
-    window.location.href = `${API_URL}/export_channel_pdf/${id}?lang=${state.lang}`;
+async function exportChannelPDF(id) {
+    try {
+        const url = `${API_URL}/export_channel_pdf/${id}?lang=${state.lang}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(await response.text() || response.statusText);
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const disposition = response.headers.get('content-disposition') || '';
+        const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
+        const filename = filenameMatch ? filenameMatch[1] : `kanal_raporu_${id}.pdf`;
+
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove(); }, 1000);
+    } catch (err) {
+        console.error('Kanal PDF hatası:', err);
+        alert('PDF indirme başarısız: ' + err.message);
+    }
 }
 
 function renderChannelSelection() {
