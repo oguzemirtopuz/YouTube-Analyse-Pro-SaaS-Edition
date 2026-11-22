@@ -1319,12 +1319,19 @@ function startEditChannel(id) {
 }
 
 // ── PDF EXPORT — pywebview uyumlu blob indirme ──
+let _pdfExporting = false;
 async function exportPDF() {
+    if (_pdfExporting) return; // Spam koruması
     if (!state.result || !state.result.analysis_id) return alert(t('error'));
 
+    _pdfExporting = true;
     const btn = document.querySelector('[onclick="exportPDF()"]');
     const oldText = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ PDF oluşturuluyor...'; }
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ PDF oluşturuluyor...';
+        btn.style.opacity = '0.7';
+    }
 
     try {
         const url = `${API_URL}/export_pdf/${state.result.analysis_id}?lang=${state.lang}`;
@@ -1350,15 +1357,25 @@ async function exportPDF() {
         document.body.appendChild(a);
         a.click();
 
+        // Başarılı mesajı göster
+        if (btn) {
+            btn.innerHTML = '✅ PDF indirildi!';
+            btn.style.opacity = '1';
+        }
+
         // Temizlik
         setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove(); }, 1000);
+
+        // Butonu 2 saniye sonra eski haline döndür
+        await new Promise(r => setTimeout(r, 2000));
     } catch (err) {
         console.error('PDF indirme hatası:', err);
         alert(state.lang === 'en' ? 'PDF download failed: ' + err.message :
               state.lang === 'es' ? 'Error al descargar PDF: ' + err.message :
               'PDF indirme başarısız: ' + err.message);
     } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = oldText; }
+        if (btn) { btn.disabled = false; btn.innerHTML = oldText; btn.style.opacity = '1'; }
+        _pdfExporting = false;
     }
 }
 
